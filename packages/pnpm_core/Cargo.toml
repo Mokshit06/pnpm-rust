@@ -1,0 +1,12 @@
+[package]
+name = "pnpm-core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+types = { path = "../types" }
+lockfile_utils = { path = "../lockfile_utils" }
+lockfile_types = { path = "../lockfile_types" }
+resolver_base = { path = "../resolver_base" }
