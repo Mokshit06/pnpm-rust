@@ -1,10 +1,8 @@
+use crate::types::Lockfile;
 use anyhow::Result;
 use std::io::Write;
 use std::path::Path;
-
-use tempfile::{tempfile, NamedTempFile};
-
-use crate::types::Lockfile;
+use tempfile::NamedTempFile;
 
 fn write_lockfile(
     lockfile_filename: &str,
@@ -26,7 +24,13 @@ fn write_lockfile(
 }
 
 fn is_empty_lockfile(lockfile: &Lockfile) -> bool {
-    todo!()
+    lockfile.importers.iter().map(|(_, v)| v).all(|importer| {
+        importer.specifiers.is_empty()
+            && importer
+                .dependencies
+                .as_ref()
+                .map_or(true, |dep| dep.is_empty())
+    })
 }
 
 fn yaml_serialize(lockfile: &Lockfile) -> serde_yaml::Result<String> {

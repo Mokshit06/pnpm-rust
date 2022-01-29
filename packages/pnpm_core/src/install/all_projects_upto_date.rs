@@ -38,27 +38,21 @@ fn get_workspace_packages_by_directory<'a>(
 pub fn all_projects_are_up_to_date<'a>(projects: &[ProjectOptions], opts: Options<'a>) -> bool {
     let manifestsByDir = get_workspace_packages_by_directory(&opts.workspace_packages);
 
-    for project in projects {
+    projects.iter().all(|project| {
         let importer = opts
             .wanted_lockfile
             .importers
             .get(project.id.as_str())
             .unwrap();
 
-        let cond = has_local_tarball_deps_in_root(&importer)
+        has_local_tarball_deps_in_root(&importer)
             && satisfies_package_manifest(
                 &opts.wanted_lockfile,
                 &project.manifest,
                 project.id.as_str(),
             )
-            && linked_packages_are_up_to_date();
-
-        if !cond {
-            return false;
-        }
-    }
-
-    true
+            && linked_packages_are_up_to_date()
+    })
 }
 
 fn linked_packages_are_up_to_date() -> bool {

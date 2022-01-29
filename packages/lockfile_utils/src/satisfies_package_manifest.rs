@@ -1,23 +1,7 @@
 use crate::types::Lockfile;
 use std::collections::HashMap;
 use std::hash::Hash;
-use types::{DependencyField, ProjectManifest};
-
-fn merge_maps<K, V>(maps: &[HashMap<K, V>]) -> HashMap<K, V>
-where
-    K: Eq + Hash + Clone,
-    V: Eq + Hash + Clone,
-{
-    let mut m = HashMap::<K, V>::new();
-
-    for map in maps {
-        for (k, v) in map {
-            m.insert(k.clone(), v.clone());
-        }
-    }
-
-    m
-}
+use types::{BaseManifest, DependencyField, ProjectManifest};
 
 macro_rules! get_dependency {
     ($val:expr, $dep_field:ident) => {{
@@ -39,14 +23,22 @@ pub fn satisfies_package_manifest(
 
     match importer {
         Some(importer) => {
-            let merged_map = merge_maps(
-                &[
-                    pkg.manifest.dev_dependencies.clone(),
-                    pkg.manifest.dependencies.clone(),
-                    pkg.manifest.optional_dependencies.clone(),
-                ]
-                .map(|dependencies| dependencies.unwrap_or_default()),
-            );
+            let BaseManifest {
+                dev_dependencies,
+                dependencies,
+                optional_dependencies,
+                ..
+            } = &pkg.manifest;
+
+            let dummy_map = HashMap::new();
+            let merged_map = dev_dependencies
+                .as_ref()
+                .unwrap_or(&dummy_map)
+                .iter()
+                .chain(dependencies.as_ref().unwrap_or(&dummy_map).iter())
+                .chain(optional_dependencies.as_ref().unwrap_or(&dummy_map).iter())
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect::<HashMap<String, String>>();
 
             if importer.specifiers != merged_map {
                 return false;
