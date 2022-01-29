@@ -1,5 +1,5 @@
 [package]
-name = "resolver_base"
+name = "resolvers"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types" }
+regex = "1.5.4"

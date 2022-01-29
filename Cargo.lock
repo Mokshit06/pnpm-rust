@@ -578,7 +578,7 @@ name = "pnpm-core"
 version = "0.1.0"
 dependencies = [
  "lockfile_utils",
- "resolver_base",
+ "resolvers",
  "types",
 ]
 
@@ -676,9 +676,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "resolver_base"
+name = "resolvers"
 version = "0.1.0"
 dependencies = [
+ "regex",
  "types",
 ]
 
