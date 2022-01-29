@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
-use lockfile_types::{Lockfile, ProjectSnapshot};
 use lockfile_utils::satisfies_package_manifest::satisfies_package_manifest;
+use lockfile_utils::types::{Lockfile, ProjectSnapshot};
 use resolver_base::WorkspacePackages;
+use std::collections::HashMap;
 use types::{BaseManifest, ProjectManifest};
 
 pub struct ProjectOptions {

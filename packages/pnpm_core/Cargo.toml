@@ -8,5 +8,4 @@ edition = "2021"
 [dependencies]
 types = { path = "../types" }
 lockfile_utils = { path = "../lockfile_utils" }
-lockfile_types = { path = "../lockfile_types" }
 resolver_base = { path = "../resolver_base" }

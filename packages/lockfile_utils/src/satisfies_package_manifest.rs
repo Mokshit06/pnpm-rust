@@ -1,4 +1,4 @@
-use lockfile_types::Lockfile;
+use crate::types::Lockfile;
 use std::collections::HashMap;
 use std::hash::Hash;
 use types::{DependencyField, ProjectManifest};

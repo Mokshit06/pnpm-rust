@@ -1,6 +1,8 @@
 mod package {
     use std::{collections::HashMap, rc::Rc};
 
+    use serde::{Deserialize, Serialize};
+
     pub enum Engines {
         Node(String),
         Npm(String),
@@ -74,7 +76,8 @@ mod package {
         executableFiles: Option<Rc<Vec<String>>>,
     }
 
-    #[derive(PartialEq)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
     pub struct DependencyMeta {
         injected: Option<bool>,
         node: Option<String>,
