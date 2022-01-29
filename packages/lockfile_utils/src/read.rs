@@ -1,6 +1,7 @@
 use crate::comver_to_semver;
 use crate::git_merge_file::autofix_merge_conflicts;
 use crate::types::{Lockfile, ProjectSnapshot};
+use anyhow::{anyhow, bail, Result};
 use semver::Version;
 use std::path::Path;
 
@@ -13,7 +14,7 @@ pub struct ReadCurrentLockFileOpts {
 pub fn read_current_lockfile(
     virtual_store_dir: &str,
     opts: ReadCurrentLockFileOpts,
-) -> Result<ReadResult, ReadError> {
+) -> Result<ReadResult> {
     let lockfile_path = Path::new(virtual_store_dir).join("lock.yaml");
 
     read(
@@ -46,12 +47,6 @@ struct LockfileFile {
     snapshot: ProjectSnapshot,
 }
 
-pub enum ReadError {
-    NotFound(std::io::Error),
-    YamlParse(serde_yaml::Error),
-    BreakingChange(String),
-}
-
 #[derive(Default)]
 struct ReadOptions {
     autofix_merge_conflicts: Option<bool>,
@@ -59,11 +54,11 @@ struct ReadOptions {
     ignore_incompatible: bool,
 }
 
-fn read(lockfile_path: &str, _prefix: &str, opts: ReadOptions) -> Result<ReadResult, ReadError> {
+fn read(lockfile_path: &str, _prefix: &str, opts: ReadOptions) -> Result<ReadResult> {
     let lockfile_raw_content = match std::fs::read_to_string(lockfile_path) {
         Ok(content) => String::from(strip_bom(&content)),
         Err(error) => match error.kind() {
-            std::io::ErrorKind::NotFound => return Err(ReadError::NotFound(error)),
+            std::io::ErrorKind::NotFound => bail!(error.to_string()),
             _ => {
                 return Ok(ReadResult {
                     lockfile: None,
@@ -77,7 +72,7 @@ fn read(lockfile_path: &str, _prefix: &str, opts: ReadOptions) -> Result<ReadRes
         Ok(lockfile) => lockfile,
         Err(error) => {
             if !opts.autofix_merge_conflicts.unwrap_or(false) {
-                return Err(ReadError::YamlParse(error));
+                bail!(error.to_string())
             }
 
             had_conflicts = true;
@@ -103,7 +98,7 @@ fn read(lockfile_path: &str, _prefix: &str, opts: ReadOptions) -> Result<ReadRes
             had_conflicts: false,
         })
     } else {
-        Err(ReadError::BreakingChange(String::from(lockfile_path)))
+        bail!("{}", lockfile_path)
     }
 }
 
@@ -115,11 +110,7 @@ mod tests {
     fn parse_lockfile() {
         let result = match read("./fixtures/test-lock.yaml", "", ReadOptions::default()) {
             Ok(f) => f,
-            Err(err) => match err {
-                ReadError::NotFound(err) => panic!("{:#?}", err),
-                ReadError::YamlParse(err) => panic!("{:#?}", err),
-                ReadError::BreakingChange(path) => panic!("Breaking change: {}", path),
-            },
+            Err(error) => panic!("{}", error),
         };
 
         // todo: use snapshot tests to assert that the parsed file is correct

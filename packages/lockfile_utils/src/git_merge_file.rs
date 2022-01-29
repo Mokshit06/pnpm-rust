@@ -33,6 +33,9 @@ fn parse_merge_file(file_content: &str) -> ParsedMergeFile {
     let mut ours = vec![];
     let mut theirs = vec![];
 
+    // `reverse` required because we're using `pop` elements
+    // instead of `shift` which pnpm uses and rust doesn't have
+    // an equivalent fn
     lines.reverse();
 
     while let Some(line) = lines.pop() {
