@@ -4,6 +4,7 @@ use crate::types::{Lockfile, ProjectSnapshot};
 use anyhow::{anyhow, bail, Result};
 use semver::Version;
 use std::path::Path;
+use strip_bom::*;
 
 pub struct ReadCurrentLockFileOpts {
     wanted_version: Option<usize>,
@@ -28,15 +29,6 @@ pub fn read_current_lockfile(
     )
 }
 
-// remove BOM character from string
-fn strip_bom(string: &str) -> &str {
-    if string.starts_with("\u{feff}") {
-        &string[3..]
-    } else {
-        &string[..]
-    }
-}
-
 pub struct ReadResult {
     lockfile: Option<Lockfile>,
     had_conflicts: bool,
@@ -56,7 +48,7 @@ struct ReadOptions {
 
 fn read(lockfile_path: &str, _prefix: &str, opts: ReadOptions) -> Result<ReadResult> {
     let lockfile_raw_content = match std::fs::read_to_string(lockfile_path) {
-        Ok(content) => String::from(strip_bom(&content)),
+        Ok(content) => String::from(content.strip_bom()),
         Err(error) => match error.kind() {
             std::io::ErrorKind::NotFound => bail!(error.to_string()),
             _ => {

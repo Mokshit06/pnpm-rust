@@ -3,12 +3,16 @@ mod package {
 
     use serde::{Deserialize, Serialize};
 
+    #[derive(Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
     pub enum Engines {
         Node(String),
         Npm(String),
         Pnpm(String),
     }
 
+    #[derive(Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
     pub struct BaseManifest {
         name: String,
         version: String,
@@ -35,7 +39,7 @@ mod package {
         module: Option<String>,
         typings: Option<String>,
         types: Option<String>,
-        publishConfig: Option<PublishConfig>,
+        publish_config: Option<PublishConfig>,
         readme: Option<String>,
         //   bin: Option<PackageBin>,
     }
@@ -71,9 +75,11 @@ mod package {
         resolutions: Option<HashMap<String, String>>,
     }
 
+    #[derive(Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
     struct PublishConfig {
         directory: Option<String>,
-        executableFiles: Option<Rc<Vec<String>>>,
+        executable_files: Option<Rc<Vec<String>>>,
     }
 
     #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -83,6 +89,8 @@ mod package {
         node: Option<String>,
     }
 
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
     pub struct PeerDependencyMeta {
         optional: Option<bool>,
     }

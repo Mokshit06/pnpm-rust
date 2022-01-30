@@ -1,8 +1,12 @@
+use crate::base::{Resolution, ResolveResult, ResolvedVia};
+use crate::read_project_manifest::read_project_manifest_only;
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
 use relative_path::RelativePath;
 use ssri;
+use ssri::Integrity;
 use std::env;
+use std::fs;
 use std::path::Path;
 
 pub enum PackageType {
@@ -32,11 +36,48 @@ impl WantedLocalDependency {
     }
 }
 
-pub fn resolve_local() {}
+pub struct ResolveLocalOpts {
+    pub lockfile_dir: String,
+    pub project_dir: String,
+}
+
+pub fn resolve_local<'a>(
+    wanted_dependency: WantedLocalDependency,
+    opts: ResolveLocalOpts,
+) -> Option<ResolveResult<'a>> {
+    let spec = parse_pref(&wanted_dependency, &opts.project_dir, &opts.lockfile_dir);
+
+    if let Some(spec) = spec {
+        if let PackageType::File = spec.r#type {
+            return Some(ResolveResult {
+                id: spec.id.clone(),
+                normalized_pref: spec.normalized_pref,
+                latest: None,
+                manifest: None,
+                resolution: Resolution::TarballResolution {
+                    integrity: Some(get_file_integrity(&spec.fetch_spec)),
+                    tarball: spec.id,
+                    registry: None,
+                },
+                resolved_via: ResolvedVia::LocalFilesystem,
+            });
+        }
+
+        let local_dependency_manifest = read_project_manifest_only(&spec.fetch_spec);
+
+        None
+    } else {
+        None
+    }
+}
+
+fn get_file_integrity(fetch_spec: &str) -> String {
+    Integrity::from(fs::read(fetch_spec).unwrap()).to_string()
+}
 
 // i'm not sure why most of these are regex's
-// but that's what they were in the original source code.
-// they might need to be changed to use the std::path
+// but that's what they were in the original pnpm source code.
+// they might be changed to use the std::path
 // for better performance and accuracy
 lazy_static! {
     static ref IS_WINDOWS: bool = cfg!(windows)

@@ -16,7 +16,7 @@ fn write_lockfile(
         std::fs::remove_dir_all(lockfile_path)?;
     } else {
         let yaml_doc = yaml_serialize(&wanted_lockfile)?;
-        let mut file = NamedTempFile::new()?;
+        let mut file = NamedTempFile::new()?.persist(lockfile_path)?;
         file.write(yaml_doc.as_bytes())?;
     }
 
