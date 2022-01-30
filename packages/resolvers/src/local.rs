@@ -1,5 +1,6 @@
 use crate::base::{Resolution, ResolveResult, ResolvedVia};
 use crate::read_project_manifest::read_project_manifest_only;
+use anyhow::Result;
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
 use relative_path::RelativePath;
@@ -41,15 +42,15 @@ pub struct ResolveLocalOpts {
     pub project_dir: String,
 }
 
-pub fn resolve_local<'a>(
+pub fn resolve_local(
     wanted_dependency: WantedLocalDependency,
     opts: ResolveLocalOpts,
-) -> Option<ResolveResult<'a>> {
+) -> Option<ResolveResult> {
     let spec = parse_pref(&wanted_dependency, &opts.project_dir, &opts.lockfile_dir);
 
-    if let Some(spec) = spec {
+    spec.map(|spec| {
         if let PackageType::File = spec.r#type {
-            return Some(ResolveResult {
+            ResolveResult {
                 id: spec.id.clone(),
                 normalized_pref: spec.normalized_pref,
                 latest: None,
@@ -60,15 +61,25 @@ pub fn resolve_local<'a>(
                     registry: None,
                 },
                 resolved_via: ResolvedVia::LocalFilesystem,
-            });
+            }
+        } else {
+            // handle errors properly (https://github.dev/pnpm/pnpm/blob/334e5340a45d0812750a2bad8fdda5266401c362/packages/local-resolver/src/index.ts#L57)
+            let local_dependency_manifest = read_project_manifest_only(&spec.fetch_spec)
+                .expect("Error reading project manifest");
+
+            ResolveResult {
+                id: spec.id.clone(),
+                manifest: Some(local_dependency_manifest),
+                latest: None,
+                resolution: Resolution::DirectoryResolution {
+                    directory: spec.dependency_path,
+                    r#type: "directory".to_string(),
+                },
+                resolved_via: ResolvedVia::LocalFilesystem,
+                normalized_pref: spec.normalized_pref,
+            }
         }
-
-        let local_dependency_manifest = read_project_manifest_only(&spec.fetch_spec);
-
-        None
-    } else {
-        None
-    }
+    })
 }
 
 fn get_file_integrity(fetch_spec: &str) -> String {

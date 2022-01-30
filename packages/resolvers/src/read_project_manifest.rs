@@ -1,18 +1,18 @@
 use anyhow::Result;
-use read_file::{read_json5_file, ParsedFile};
-use std::{fs, io::Write, path::Path};
-use strip_bom::*;
+use read_file::{read_json5_file, read_json_file, ParsedFile};
+use std::fs;
+use std::io::Write;
+use std::path::Path;
 use tempfile::NamedTempFile;
 use types::BaseManifest;
 
 pub struct ProjectManifest {
     file_name: String,
-    manifest: Option<BaseManifest>,
+    manifest: BaseManifest,
     writer_options: WriterOptions,
 }
 
 pub struct WriterOptions {
-    indent: Option<String>,
     insert_final_newline: Option<bool>,
     manifest_path: String,
 }
@@ -53,7 +53,7 @@ pub fn write_project_manifest(
     let json = if ext == "json5" {
         json5::to_string(&manifest)?
     } else {
-        serde_json::to_string(&manifest)?
+        serde_json::to_string_pretty(&manifest)?
     };
 
     let mut file = NamedTempFile::new()?.persist(file_path)?;
@@ -65,18 +65,12 @@ pub fn write_project_manifest(
 impl ProjectManifest {
     pub fn write_project_manifest(
         &self,
-        updated_manifest: BaseManifest,
+        updated_manifest: &BaseManifest,
         force: bool,
     ) -> Result<Option<()>> {
         // let updated_manifest = &updated_manifest;
 
-        if force
-            || self
-                .manifest
-                .as_ref()
-                .map(|manifest| manifest != &updated_manifest)
-                .unwrap_or(false)
-        {
+        if force || &self.manifest != updated_manifest {
             Ok(Some(write_project_manifest(
                 &self.writer_options.manifest_path,
                 &updated_manifest,
@@ -88,28 +82,27 @@ impl ProjectManifest {
     }
 }
 
+pub fn read_project_manifest_only(project_dir: &str) -> Result<BaseManifest> {
+    let ProjectManifest { manifest, .. } = read_project_manifest(project_dir)?;
+    Ok(manifest)
+}
+
 pub fn read_project_manifest(project_dir: &str) -> Result<ProjectManifest> {
-    let manifest_path = Path::new(project_dir)
-        .join("package.json")
-        .to_string_lossy()
-        .to_string();
-    let ParsedFile { data, text } = read_json5_file(&manifest_path)?;
+    let manifest_path = Path::new(project_dir).join("package.json");
+    let manifest_path_string = manifest_path.to_string_lossy().to_string();
+    let ParsedFile { data, text } = read_json5_file(&manifest_path_string)?;
+
+    // maybe support other package.[ext] formats like yaml in the future"
 
     Ok(ProjectManifest {
         file_name: "package.json".to_string(),
-        manifest: Some(data),
+        manifest: data,
         writer_options: WriterOptions {
-            manifest_path,
-            ..detect_file_formatting(&text)
+            manifest_path: manifest_path_string,
+            insert_final_newline: Some(text.ends_with("\n")),
         },
     })
 }
-
-fn detect_file_formatting(text: &str) -> WriterOptions {
-    todo!()
-}
-
-pub fn read_project_manifest_only(project_dir: &str) {}
 
 mod read_file {
     use anyhow::{anyhow, Result};
@@ -125,6 +118,14 @@ mod read_file {
     pub fn read_json5_file(file_path: &str) -> Result<ParsedFile> {
         let text = read_file_without_bom(file_path)?;
         let data = json5::from_str::<BaseManifest>(&text)
+            .map_err(|err| anyhow!("{} in {}", err.to_string(), file_path))?;
+
+        Ok(ParsedFile { data, text })
+    }
+
+    pub fn read_json_file(file_path: &str) -> Result<ParsedFile> {
+        let text = read_file_without_bom(file_path)?;
+        let data = serde_json::from_str::<BaseManifest>(&text)
             .map_err(|err| anyhow!("{} in {}", err.to_string(), file_path))?;
 
         Ok(ParsedFile { data, text })

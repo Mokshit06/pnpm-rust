@@ -34,10 +34,10 @@ pub enum ResolvedVia {
     Other(String),
 }
 
-pub struct ResolveResult<'a> {
+pub struct ResolveResult {
     pub id: String,
     pub latest: Option<String>,
-    pub manifest: Option<&'a BaseManifest>,
+    pub manifest: Option<BaseManifest>,
     pub normalized_pref: String,
     pub resolution: Resolution,
     pub resolved_via: ResolvedVia,
