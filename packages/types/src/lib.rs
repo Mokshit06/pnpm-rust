@@ -1,15 +1,34 @@
 mod project {
+    use std::collections::HashMap;
+
     use crate::BaseManifest;
+    use anyhow::Result;
+
+    // pub trait WriteProject {
+    //     fn write_project_manifest(
+    //         &self,
+    //         updated_manifest: &BaseManifest,
+    //         force: bool,
+    //     ) -> Result<Option<()>>;
+    // }
 
     pub struct Project {
         pub dir: String,
         pub manifest: BaseManifest,
-        // writeProjectManifest: (manifest: ProjectManifest, force?: boolean | undefined) => Promise<void>
+        pub writer_options: WriterOptions,
     }
 
-    impl Project {
-        pub fn write_project_manifest(manifest: &BaseManifest, force: Option<bool>) {}
+    pub struct WriterOptions {
+        pub insert_final_newline: Option<bool>,
+        pub manifest_path: String,
     }
+
+    pub struct Graph<'a> {
+        pub dependencies: Vec<String>,
+        pub package: &'a Project,
+    }
+
+    pub type ProjectsGraph<'a> = HashMap<String, Graph<'a>>;
 }
 
 mod package {
@@ -27,8 +46,41 @@ mod package {
     #[derive(Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub struct BaseManifest {
-        name: String,
-        version: String,
+        pub name: Option<String>,
+        pub version: Option<String>,
+        description: Option<String>,
+        //   directories: Option<{,
+        //     bin: Option<String>,
+        //   }>
+        pub dev_dependencies: Option<Dependencies>,
+        pub dependencies: Option<Dependencies>,
+        pub optional_dependencies: Option<Dependencies>,
+        pub peer_dependencies: Option<Dependencies>,
+        pub peer_dependencies_meta: Option<PeerDependenciesMeta>,
+        pub dependencies_meta: Option<DependenciesMeta>,
+        bundle_dependencies: Option<Rc<Vec<String>>>,
+        bundled_dependencies: Option<Rc<Vec<String>>>,
+        homepage: Option<String>,
+        repository: Option<String>,
+        //   scripts: Option<PackageScripts>,
+        //   config: Option<object>,
+        engines: Engines,
+        cpu: Option<Rc<Vec<String>>>,
+        os: Option<Rc<Vec<String>>>,
+        main: Option<String>,
+        module: Option<String>,
+        typings: Option<String>,
+        types: Option<String>,
+        publish_config: Option<PublishConfig>,
+        readme: Option<String>,
+        //   bin: Option<PackageBin>,
+    }
+
+    #[derive(Deserialize, Serialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub struct DependencyManifest {
+        pub name: String,
+        pub version: String,
         description: Option<String>,
         //   directories: Option<{,
         //     bin: Option<String>,

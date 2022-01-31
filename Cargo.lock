@@ -152,6 +152,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cli_utils"
+version = "0.1.0"
+
+[[package]]
 name = "constants"
 version = "0.1.0"
 
@@ -243,11 +247,15 @@ name = "find_workspace_packages"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "constants",
  "glob",
  "globset",
  "lazy_static",
  "read_project_manifest",
  "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
  "types",
 ]
 
@@ -863,6 +871,8 @@ name = "pnpm-rust"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "find_workspace_packages",
+ "relative-path",
  "types",
 ]
 
@@ -1168,6 +1178,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sort_packages"
+version = "0.1.0"
+dependencies = [
+ "types",
+]
+
+[[package]]
 name = "ssri"
 version = "7.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1349,6 +1366,7 @@ checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 name = "types"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
 ]
 

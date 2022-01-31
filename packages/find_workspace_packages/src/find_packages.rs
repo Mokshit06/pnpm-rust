@@ -4,9 +4,9 @@ use anyhow::Result;
 use glob::{glob, glob_with, MatchOptions, Paths};
 use globset::{Glob, GlobSetBuilder};
 use lazy_static::lazy_static;
-use read_project_manifest::{read_project_manifest, write_project_manifest, WriterOptions};
+use read_project_manifest::{read_project_manifest, write_project_manifest};
 use regex::Regex;
-use types::{BaseManifest, ProjectManifest};
+use types::{BaseManifest, Project, ProjectManifest};
 
 const DEFAULT_IGNORE: [&'static str; 4] = [
     "**/node_modules/**",
@@ -15,15 +15,16 @@ const DEFAULT_IGNORE: [&'static str; 4] = [
     "**/tests/**",
 ];
 
-// I think this `Project` is different from `types::Project`
-pub struct Project {
-    pub dir: String,
-    manifest: BaseManifest,
-    writer_options: WriterOptions,
+trait WriteProject {
+    fn write_project_manifest(
+        &self,
+        updated_manifest: &BaseManifest,
+        force: bool,
+    ) -> Result<Option<()>>;
 }
 
-impl Project {
-    pub fn write_project_manifest(
+impl WriteProject for Project {
+    fn write_project_manifest(
         &self,
         updated_manifest: &BaseManifest,
         force: bool,
@@ -54,7 +55,7 @@ pub fn find_packages(root: &str, opts: Option<FindPackagesOpts>) -> Result<Vec<P
     // let patterns = normalize_patterns(&opts.patterns.unwrap_or_default());
     let patterns = &opts
         .patterns
-        .unwrap_or(vec![".".to_string(), "**".to_string()]);
+        .unwrap_or_else(|| vec![".".to_string(), "**".to_string()]);
     let mut paths = Vec::new();
     for pattern in patterns {
         paths.extend(glob(pattern)?);

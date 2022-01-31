@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 clap = { version = "3.0.13", features = ["derive"] }
 types = { path = "./packages/types" }
+find_workspace_packages = { path = "./packages/find_workspace_packages" }
+relative-path = "1.6.0"
 
 [workspace]
 members = [

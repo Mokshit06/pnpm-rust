@@ -13,3 +13,7 @@ glob = "0.3.0"
 anyhow = "1.0.53"
 globset = "0.4.8"
 read_project_manifest = { path = "../read_project_manifest" }
+serde_yaml = "0.8"
+serde_json = "1.0.78"
+constants = { path = "../constants" }
+serde = { version = "1.0", features = ["derive", "rc"] }

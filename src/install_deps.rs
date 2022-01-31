@@ -1,5 +1,6 @@
+use relative_path::RelativePath;
 use std::collections::HashMap;
-use types::{IncludedDependencies, Project};
+use types::{Graph, IncludedDependencies, Project, ProjectsGraph};
 
 #[derive(Default)]
 pub struct RawLocalConfig {
@@ -13,7 +14,8 @@ pub struct RawLocalConfig {
     modules_dir: Option<String>,
 }
 
-pub struct InstallDepsOpts {
+pub struct InstallDepsOpts<'a> {
+    dir: String,
     workspace: Option<bool>,
     latest: Option<bool>,
     save_workspace_protocol: Option<bool>,
@@ -22,9 +24,10 @@ pub struct InstallDepsOpts {
     raw_local_config: RawLocalConfig,
     include_direct: Option<IncludedDependencies>,
     all_projects: Option<Vec<Project>>,
+    selected_projects_graph: Option<ProjectsGraph<'a>>,
 }
 
-pub fn install_deps(mut opts: InstallDepsOpts, params: &[&str]) {
+pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) {
     if opts.workspace.unwrap_or(false) {
         if opts.latest.unwrap_or(false) {
             panic!("BAD_OPTIONS: Cannot use --latest with --workspace simultaneously");
@@ -44,7 +47,7 @@ pub fn install_deps(mut opts: InstallDepsOpts, params: &[&str]) {
         }
 
         // opts['preserveWorkspaceProtocol'] = !opts.linkWorkspacePackages
-        let include_direct = opts.include_direct.unwrap_or(IncludedDependencies {
+        let include_direct = opts.include_direct.unwrap_or_else(|| IncludedDependencies {
             dependencies: true,
             dev_dependencies: true,
             optional_dependencies: true,
@@ -53,16 +56,49 @@ pub fn install_deps(mut opts: InstallDepsOpts, params: &[&str]) {
             opts.raw_local_config.hoist_pattern.is_some() || opts.raw_local_config.hoist.is_some();
         let force_public_hoist_pattern = opts.raw_local_config.shamefully_hoist.is_some()
             || opts.raw_local_config.public_hoist_pattern.is_some();
-        let all_projects =
-            opts.all_projects
-                .unwrap_or(if let Some(workspace_dir) = opts.workspace_dir {
-                    find_workspace_packages(&workspace_dir, &opts)
-                } else {
-                    vec![]
-                });
+        let all_projects = match opts.all_projects {
+            Some(all_projects) => all_projects,
+            None => opts
+                .workspace_dir
+                .as_ref()
+                .map(|workspace_dir| find_workspace_packages(&workspace_dir))
+                .unwrap_or(vec![]),
+        };
+
+        if let Some(workspace_dir) = &opts.workspace_dir {
+            if let Some(selected_projects_graph) = match opts.selected_projects_graph {
+                Some(graph) => Some(graph),
+                None => select_project_by_dir(&all_projects, &opts.dir),
+            } {
+                let sequenced_graph = sequence_graph(&selected_projects_graph);
+            }
+        }
     }
 }
 
-fn find_workspace_packages(workspace_dir: &str, opts: &InstallDepsOpts) -> Vec<Project> {
+fn select_project_by_dir<'a>(
+    all_projects: &'a [Project],
+    search_dir: &str,
+) -> Option<ProjectsGraph<'a>> {
+    let project = all_projects.iter().find(|Project { dir, .. }| {
+        RelativePath::new(dir)
+            .to_path(search_dir)
+            .to_string_lossy()
+            .to_string()
+            == ""
+    });
+
+    project.map(|project| {
+        HashMap::from_iter([(
+            search_dir.to_string(),
+            Graph {
+                dependencies: vec![],
+                package: project,
+            },
+        )])
+    })
+}
+
+fn find_workspace_packages(workspace_dir: &str) -> Vec<Project> {
     vec![]
 }
