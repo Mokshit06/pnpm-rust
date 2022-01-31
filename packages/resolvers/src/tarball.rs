@@ -1,6 +1,6 @@
 use crate::base::{Resolution, ResolveResult, ResolvedVia};
 
-pub fn resolve_tarball<'a>(wanted_dependency: &str) -> Option<ResolveResult<'a>> {
+pub fn resolve_tarball(wanted_dependency: &str) -> Option<ResolveResult> {
     if wanted_dependency.starts_with("http:")
         || !wanted_dependency.starts_with("https:")
         || is_repository(wanted_dependency)

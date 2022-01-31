@@ -1,7 +1,20 @@
-mod package {
-    use std::{collections::HashMap, rc::Rc};
+mod project {
+    use crate::BaseManifest;
 
+    pub struct Project {
+        pub dir: String,
+        pub manifest: BaseManifest,
+        // writeProjectManifest: (manifest: ProjectManifest, force?: boolean | undefined) => Promise<void>
+    }
+
+    impl Project {
+        pub fn write_project_manifest(manifest: &BaseManifest, force: Option<bool>) {}
+    }
+}
+
+mod package {
     use serde::{Deserialize, Serialize};
+    use std::{collections::HashMap, rc::Rc};
 
     #[derive(Deserialize, Serialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
@@ -101,12 +114,19 @@ mod package {
 }
 
 pub use package::*;
+pub use project::*;
 
 #[derive(Clone, Copy)]
 pub enum DependencyField {
     OptionalDependencies,
     Dependencies,
     DevDependencies,
+}
+
+pub struct IncludedDependencies {
+    pub optional_dependencies: bool,
+    pub dependencies: bool,
+    pub dev_dependencies: bool,
 }
 
 impl DependencyField {

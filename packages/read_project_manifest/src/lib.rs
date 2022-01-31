@@ -8,13 +8,13 @@ use types::BaseManifest;
 
 pub struct ProjectManifest {
     file_name: String,
-    manifest: BaseManifest,
-    writer_options: WriterOptions,
+    pub manifest: BaseManifest,
+    pub writer_options: WriterOptions,
 }
 
 pub struct WriterOptions {
     insert_final_newline: Option<bool>,
-    manifest_path: String,
+    pub manifest_path: String,
 }
 
 pub fn write_project_manifest(

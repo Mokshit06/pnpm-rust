@@ -1,5 +1,5 @@
 [package]
-name = "resolvers"
+name = "find_workspace_packages"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,14 +8,8 @@ edition = "2021"
 [dependencies]
 types = { path = "../types" }
 regex = "1.5.4"
-ssri = "7.0.0"
 lazy_static = "1.4.0"
-dirs = "4.0.0"
-relative-path = "1.6.0"
-strip_bom = "1.0.0"
+glob = "0.3.0"
 anyhow = "1.0.53"
-json5 = "0.4.1"
-serde_yaml = "0.8"
-serde_json = "1.0.78"
-tempfile = "3.3.0"
+globset = "0.4.8"
 read_project_manifest = { path = "../read_project_manifest" }

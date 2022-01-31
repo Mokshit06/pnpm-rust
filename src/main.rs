@@ -1,9 +1,11 @@
-use clap::{AppSettings, Parser, Subcommand};
+use clap::{App, AppSettings, ArgGroup, IntoApp, Parser, Subcommand};
 use std::process::Command;
+mod commands;
+use commands::{add, install};
+mod install_deps;
 
 #[derive(Parser, Debug)]
 #[clap(global_setting(AppSettings::AllowHyphenValues))]
-#[clap(version)]
 struct Args {
     #[clap(subcommand)]
     command: Option<Commands>,
@@ -15,12 +17,22 @@ struct Args {
 #[derive(Subcommand, Debug)]
 enum Commands {
     /// Installs a package and any packages that it depends on. By default, any new package is installed as a prod dependency add
-    Add,
+    Add(add::Add),
     /// Install all dependencies for a project
-    Install,
+    Install(install::Install),
     Remove,
     Update,
     Run,
+}
+
+impl Commands {
+    fn exec(&self) {
+        match &self {
+            Self::Add(x) => x.exec(),
+            Self::Install(x) => x.exec(),
+            _ => {}
+        }
+    }
 }
 
 fn main() {
@@ -36,9 +48,8 @@ fn main() {
         std::process::exit(0);
     }
 
-    match args.command {
-        _ => {
-            println!("works i guess")
-        }
+    if let Some(command) = args.command {
+    } else {
+        Args::into_app().print_help().unwrap();
     }
 }

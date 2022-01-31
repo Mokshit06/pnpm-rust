@@ -1,5 +1,5 @@
 use crate::base::{Resolution, ResolveResult, ResolvedVia};
-use crate::read_project_manifest::read_project_manifest_only;
+use read_project_manifest::read_project_manifest_only;
 use anyhow::Result;
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
