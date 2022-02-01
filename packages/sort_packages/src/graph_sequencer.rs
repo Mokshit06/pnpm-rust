@@ -7,8 +7,8 @@ use std::hash::Hash;
 use std::ops::RangeBounds;
 use std::rc::Rc;
 
-type Graph<'a, T> = HashMap<&'a T, Vec<&'a T>>;
-type Groups<'a, T> = Vec<Vec<&'a T>>;
+pub type Graph<'a, T> = HashMap<&'a T, Vec<&'a T>>;
+pub type Groups<'a, T> = Vec<Vec<&'a T>>;
 
 pub struct SequencerOptions<'a, T: PartialEq> {
     pub graph: Graph<'a, T>,
@@ -276,6 +276,7 @@ mod tests {
 
     #[test]
     fn graph_with_unresolved_cycle() {
+        // TODO: fix cycles and push the unresolved cycles to them
         assert_eq!(
             graph_sequencer(SequencerOptions {
                 graph: HashMap::from_iter([
