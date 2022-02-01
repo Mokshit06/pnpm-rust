@@ -70,7 +70,7 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) {
                 Some(graph) => Some(graph),
                 None => select_project_by_dir(&all_projects, &opts.dir),
             } {
-                let sequenced_graph = sequence_graph(&selected_projects_graph);
+                // let sequenced_graph = sequence_graph(&selected_projects_graph);
             }
         }
     }

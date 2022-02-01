@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 types = { path = "../types" }
+pretty_assertions = "1.0.0"
+indexmap = "1.8.0"
