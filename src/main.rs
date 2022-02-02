@@ -1,6 +1,7 @@
 use clap::{App, AppSettings, ArgGroup, IntoApp, Parser, Subcommand};
 use std::process::Command;
 mod commands;
+mod recursive;
 use commands::{add, install};
 mod install_deps;
 

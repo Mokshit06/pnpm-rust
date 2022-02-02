@@ -1,36 +1,3 @@
-mod project {
-    use std::collections::HashMap;
-
-    use crate::BaseManifest;
-    use anyhow::Result;
-
-    // pub trait WriteProject {
-    //     fn write_project_manifest(
-    //         &self,
-    //         updated_manifest: &BaseManifest,
-    //         force: bool,
-    //     ) -> Result<Option<()>>;
-    // }
-
-    pub struct Project {
-        pub dir: String,
-        pub manifest: BaseManifest,
-        pub writer_options: WriterOptions,
-    }
-
-    pub struct WriterOptions {
-        pub insert_final_newline: Option<bool>,
-        pub manifest_path: String,
-    }
-
-    pub struct Graph<'a> {
-        pub dependencies: Vec<String>,
-        pub package: &'a Project,
-    }
-
-    pub type ProjectsGraph<'a> = HashMap<String, Graph<'a>>;
-}
-
 mod package {
     use serde::{Deserialize, Serialize};
     use std::{collections::HashMap, rc::Rc};
@@ -166,7 +133,6 @@ mod package {
 }
 
 pub use package::*;
-pub use project::*;
 
 #[derive(Clone, Copy)]
 pub enum DependencyField {

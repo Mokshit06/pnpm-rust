@@ -4,7 +4,12 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 use tempfile::NamedTempFile;
-use types::{BaseManifest, WriterOptions};
+use types::BaseManifest;
+
+pub struct WriterOptions {
+    pub insert_final_newline: Option<bool>,
+    pub manifest_path: String,
+}
 
 pub struct ProjectManifest {
     file_name: String,

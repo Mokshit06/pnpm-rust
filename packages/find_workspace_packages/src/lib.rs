@@ -2,8 +2,9 @@ use std::{collections::HashMap, path::Path};
 
 use anyhow::Result;
 use find_packages::FindPackagesOpts;
+use project::Project;
 use serde::Deserialize;
-use types::{BaseManifest, Project};
+use types::BaseManifest;
 mod find_packages;
 
 pub struct WorkspacePackagesOpts {

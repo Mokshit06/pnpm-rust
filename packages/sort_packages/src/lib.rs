@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use graph_sequencer::{graph_sequencer, Graph, SequencerOptions, SequencerResult};
 use indexmap::IndexMap;
-use types::ProjectsGraph;
+use project::ProjectsGraph;
 mod graph_sequencer;
 
 pub fn sequence_graph<'a>(pkg_graph: &'a ProjectsGraph<'a>) -> SequencerResult<'a, String> {

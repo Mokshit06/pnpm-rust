@@ -17,7 +17,8 @@ fn write_lockfile(
     } else {
         let yaml_doc = yaml_serialize(&wanted_lockfile)?;
         let mut file = NamedTempFile::new()?.persist(lockfile_path)?;
-        file.write(yaml_doc.as_bytes())?;
+        // file.write(yaml_doc.as_bytes())?;
+        write!(file, "{}", yaml_doc)?;
     }
 
     Ok(())

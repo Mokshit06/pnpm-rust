@@ -1,11 +1,11 @@
 [package]
-name = "sort_packages"
+name = "project"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pretty_assertions = "1.0.0"
-indexmap = "1.8.0"
-project = { path = "../project" }
+types = { path = "../types" }
+anyhow = "1.0.53"
+read_project_manifest = { path = "../read_project_manifest" }

@@ -4,9 +4,10 @@ use anyhow::Result;
 use glob::{glob, glob_with, MatchOptions, Paths};
 use globset::{Glob, GlobSetBuilder};
 use lazy_static::lazy_static;
+use project::Project;
 use read_project_manifest::{read_project_manifest, write_project_manifest};
 use regex::Regex;
-use types::{BaseManifest, Project, ProjectManifest};
+use types::{BaseManifest, ProjectManifest};
 
 const DEFAULT_IGNORE: [&'static str; 4] = [
     "**/node_modules/**",
@@ -14,34 +15,6 @@ const DEFAULT_IGNORE: [&'static str; 4] = [
     "**/test/**",
     "**/tests/**",
 ];
-
-trait WriteProject {
-    fn write_project_manifest(
-        &self,
-        updated_manifest: &BaseManifest,
-        force: bool,
-    ) -> Result<Option<()>>;
-}
-
-impl WriteProject for Project {
-    fn write_project_manifest(
-        &self,
-        updated_manifest: &BaseManifest,
-        force: bool,
-    ) -> Result<Option<()>> {
-        // let updated_manifest = &updated_manifest;
-
-        if force || &self.manifest != updated_manifest {
-            Ok(Some(write_project_manifest(
-                &self.writer_options.manifest_path,
-                &updated_manifest,
-                &self.writer_options,
-            )?))
-        } else {
-            Ok(None)
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct FindPackagesOpts {

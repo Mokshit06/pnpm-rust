@@ -276,6 +276,7 @@ dependencies = [
  "glob",
  "globset",
  "lazy_static",
+ "project",
  "read_project_manifest",
  "regex",
  "serde",
@@ -906,7 +907,9 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "find_workspace_packages",
+ "project",
  "relative-path",
+ "sort_packages",
  "types",
 ]
 
@@ -953,6 +956,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7342d5883fbccae1cc37a2353b09c87c9b0f3afd73f5fb9bba687a1f733b029"
 dependencies = [
  "unicode-xid",
+]
+
+[[package]]
+name = "project"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "read_project_manifest",
+ "types",
 ]
 
 [[package]]
@@ -1229,7 +1241,7 @@ version = "0.1.0"
 dependencies = [
  "indexmap",
  "pretty_assertions",
- "types",
+ "project",
 ]
 
 [[package]]

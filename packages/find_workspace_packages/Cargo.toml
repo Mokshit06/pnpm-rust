@@ -17,3 +17,4 @@ serde_yaml = "0.8"
 serde_json = "1.0.78"
 constants = { path = "../constants" }
 serde = { version = "1.0", features = ["derive", "rc"] }
+project = { path = "../project" }

@@ -1,6 +1,8 @@
+use project::{Graph, Project, ProjectsGraph};
 use relative_path::RelativePath;
+use sort_packages::sequence_graph;
 use std::collections::HashMap;
-use types::{Graph, IncludedDependencies, Project, ProjectsGraph};
+use types::IncludedDependencies;
 
 #[derive(Default)]
 pub struct RawLocalConfig {
@@ -70,7 +72,26 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) {
                 Some(graph) => Some(graph),
                 None => select_project_by_dir(&all_projects, &opts.dir),
             } {
-                // let sequenced_graph = sequence_graph(&selected_projects_graph);
+                let sequenced_graph = sequence_graph(&selected_projects_graph);
+
+                if !sequenced_graph.safe {
+                    let cyclic_dependencies_info = if sequenced_graph.cycles.is_empty() {
+                        format!("")
+                    } else {
+                        sequenced_graph
+                            .cycles
+                            .iter()
+                            .map(|deps| {
+                                deps.iter()
+                                    .map(|&x| x.clone())
+                                    .collect::<Vec<_>>()
+                                    .join("-")
+                            })
+                            .collect::<Vec<String>>()
+                            .join("; ")
+                    };
+                    println!("WARN: there are cyclic workspace dependencies")
+                }
             }
         }
     }
