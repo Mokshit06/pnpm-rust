@@ -63,16 +63,16 @@ fn require_packages_manifest(dir: &str) -> Result<Option<PackagesManifest>> {
     }
 }
 
-pub struct ManifestOnlyPackage {
-    pub manifest: BaseManifest,
+pub struct ManifestOnlyPackage<'a> {
+    pub manifest: &'a BaseManifest,
 }
 
 // TODO: currently this function does way too many unecessary allocations
 // but right now I'm first trying to make this work
 // I'll deal with lifetimes later
-pub fn slice_of_workspace_packages_to_map(
-    packages: &[ManifestOnlyPackage],
-) -> HashMap<String, HashMap<String, &ManifestOnlyPackage>> {
+pub fn slice_of_workspace_packages_to_map<'a, 'r>(
+    packages: &'r [ManifestOnlyPackage<'a>],
+) -> HashMap<String, HashMap<String, &'r ManifestOnlyPackage<'a>>> {
     let mut map = HashMap::new();
 
     for package in packages {
@@ -86,7 +86,7 @@ pub fn slice_of_workspace_packages_to_map(
                         .manifest
                         .version
                         .clone()
-                        .unwrap_or("0.0.0".to_string()),
+                        .unwrap_or_else(|| "0.0.0".to_string()),
                     package,
                 );
             }

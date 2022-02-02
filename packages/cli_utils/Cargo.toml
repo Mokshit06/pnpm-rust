@@ -6,3 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+read_project_manifest = { path = "../read_project_manifest" }
+anyhow = "1.0.53"
+types = { path = "../types" }

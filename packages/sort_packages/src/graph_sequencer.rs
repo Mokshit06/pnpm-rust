@@ -1,11 +1,11 @@
 use indexmap::IndexMap as HashMap;
-use std::cell::RefCell;
-use std::cmp::Ordering;
+
+
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::RangeBounds;
-use std::rc::Rc;
+
 
 pub type Graph<'a, T> = HashMap<&'a T, Vec<&'a T>>;
 pub type Groups<'a, T> = Vec<Vec<&'a T>>;
@@ -29,7 +29,7 @@ fn visit<'a, T: Clone + Eq + Hash + Debug>(
     curr_deps_map: &mut Graph<'a, T>,
     cycles: &mut Groups<'a, T>,
 ) {
-    if let Some(deps) = curr_deps_map.get(item).map(|deps| deps.clone()) {
+    if let Some(deps) = curr_deps_map.get(item).cloned() {
         println!("deps = {:?}", deps);
         for dep in deps {
             println!("[{:?}, {:?}]", cycle, dep);
@@ -38,9 +38,9 @@ fn visit<'a, T: Clone + Eq + Hash + Debug>(
             }
 
             let mut r = vec![];
-            let mut visited_deps_option = visited.get_mut(item);
-            let is_none = visited_deps_option.is_none();
-            let mut visited_deps = if let Some(v) = visited_deps_option {
+            let visited_deps_option = visited.get_mut(item);
+            let _is_none = visited_deps_option.is_none();
+            let visited_deps = if let Some(v) = visited_deps_option {
                 v
             } else {
                 &mut r
@@ -137,8 +137,7 @@ pub fn graph_sequencer<'a, T: Eq + Hash + Clone + Ord + Debug>(
                             } else {
                                 !chunked.contains(*dep)
                             }
-                        })
-                        .map(|dep| *dep)
+                        }).copied()
                         .collect::<Vec<_>>();
 
                     if curr_deps.is_empty() {
@@ -167,7 +166,7 @@ pub fn graph_sequencer<'a, T: Eq + Hash + Clone + Ord + Debug>(
             });
 
             chunk.push(queue[0]);
-            next_queue = (&queue[1..].iter().map(|&x| x).collect::<Vec<_>>()).clone();
+            next_queue = (&queue[1..].iter().copied().collect::<Vec<_>>()).clone();
             safe = false;
         }
 

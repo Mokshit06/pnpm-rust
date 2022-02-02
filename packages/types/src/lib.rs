@@ -10,7 +10,7 @@ mod package {
         Pnpm(String),
     }
 
-    #[derive(Deserialize, Serialize, PartialEq)]
+    #[derive(Deserialize, Serialize, PartialEq, Default)]
     #[serde(rename_all = "camelCase")]
     pub struct BaseManifest {
         pub name: Option<String>,
@@ -31,7 +31,7 @@ mod package {
         repository: Option<String>,
         //   scripts: Option<PackageScripts>,
         //   config: Option<object>,
-        engines: Engines,
+        engines: Option<Engines>,
         cpu: Option<Rc<Vec<String>>>,
         os: Option<Rc<Vec<String>>>,
         main: Option<String>,

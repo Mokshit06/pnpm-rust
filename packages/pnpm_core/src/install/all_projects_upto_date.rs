@@ -18,8 +18,8 @@ pub struct Options<'a> {
     workspace_packages: WorkspacePackages<'a>,
 }
 
-const X: &'static str = std::env::consts::OS;
-const Y: &'static str = std::env::consts::ARCH;
+const X: &str = std::env::consts::OS;
+const Y: &str = std::env::consts::ARCH;
 
 fn get_workspace_packages_by_directory<'a>(
     workspace_packages: &'a WorkspacePackages<'a>,
@@ -27,7 +27,7 @@ fn get_workspace_packages_by_directory<'a>(
     let mut workspace_packages_by_directory = HashMap::new();
 
     for (pkg_name, _) in workspace_packages {
-        for (pkg_version, pkg) in workspace_packages.get(pkg_name).unwrap() {
+        for (_pkg_version, pkg) in workspace_packages.get(pkg_name).unwrap() {
             workspace_packages_by_directory.insert(pkg.dir.as_str(), pkg.manifest);
         }
     }
@@ -36,7 +36,7 @@ fn get_workspace_packages_by_directory<'a>(
 }
 
 pub fn all_projects_are_up_to_date<'a>(projects: &[ProjectOptions], opts: Options<'a>) -> bool {
-    let manifestsByDir = get_workspace_packages_by_directory(&opts.workspace_packages);
+    let _manifestsByDir = get_workspace_packages_by_directory(&opts.workspace_packages);
 
     projects.iter().all(|project| {
         let importer = opts
@@ -45,7 +45,7 @@ pub fn all_projects_are_up_to_date<'a>(projects: &[ProjectOptions], opts: Option
             .get(project.id.as_str())
             .unwrap();
 
-        has_local_tarball_deps_in_root(&importer)
+        has_local_tarball_deps_in_root(importer)
             && satisfies_package_manifest(
                 &opts.wanted_lockfile,
                 &project.manifest,

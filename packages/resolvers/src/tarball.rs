@@ -7,7 +7,7 @@ pub fn resolve_tarball(wanted_dependency: &str) -> Option<ResolveResult> {
     {
         None
     } else {
-        let pattern = regex::Regex::new(r"^.*:\/\/(git@)?").unwrap();
+        let pattern = regex::Regex::new(r"^.*://(git@)?").unwrap();
         Some(ResolveResult {
             id: format!(
                 "@{}",
@@ -26,7 +26,7 @@ pub fn resolve_tarball(wanted_dependency: &str) -> Option<ResolveResult> {
     }
 }
 
-const GIT_HOSTERS: [&'static str; 3] = ["github.com", "gitlab.com", "bitbucket.org"];
+const GIT_HOSTERS: [&str; 3] = ["github.com", "gitlab.com", "bitbucket.org"];
 
 fn is_repository(mut pref: &str) -> bool {
     if pref.ends_with('/') {

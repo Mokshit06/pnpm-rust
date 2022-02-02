@@ -1,5 +1,5 @@
 use anyhow::Result;
-use read_file::{read_json5_file, read_json_file, ParsedFile};
+use read_file::{read_json5_file, ParsedFile};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -13,7 +13,7 @@ pub struct WriterOptions {
 
 pub struct ProjectManifest {
     file_name: String,
-    pub manifest: BaseManifest,
+    pub manifest: Option<BaseManifest>,
     pub writer_options: WriterOptions,
 }
 
@@ -70,10 +70,10 @@ impl ProjectManifest {
     ) -> Result<Option<()>> {
         // let updated_manifest = &updated_manifest;
 
-        if force || &self.manifest != updated_manifest {
+        if force || self.manifest.as_ref().expect("manifest not found") != updated_manifest {
             Ok(Some(write_project_manifest(
                 &self.writer_options.manifest_path,
-                &updated_manifest,
+                updated_manifest,
                 &self.writer_options,
             )?))
         } else {
@@ -84,7 +84,7 @@ impl ProjectManifest {
 
 pub fn read_project_manifest_only(project_dir: &str) -> Result<BaseManifest> {
     let ProjectManifest { manifest, .. } = read_project_manifest(project_dir)?;
-    Ok(manifest)
+    Ok(manifest.expect("manifest not found"))
 }
 
 pub fn read_project_manifest(project_dir: &str) -> Result<ProjectManifest> {
@@ -96,10 +96,10 @@ pub fn read_project_manifest(project_dir: &str) -> Result<ProjectManifest> {
 
     Ok(ProjectManifest {
         file_name: "package.json".to_string(),
-        manifest: data,
+        manifest: Some(data),
         writer_options: WriterOptions {
             manifest_path: manifest_path_string,
-            insert_final_newline: Some(text.ends_with("\n")),
+            insert_final_newline: Some(text.ends_with('\n')),
         },
     })
 }

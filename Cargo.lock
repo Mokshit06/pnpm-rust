@@ -163,6 +163,11 @@ dependencies = [
 [[package]]
 name = "cli_utils"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "read_project_manifest",
+ "types",
+]
 
 [[package]]
 name = "constants"
@@ -905,9 +910,12 @@ dependencies = [
 name = "pnpm-rust"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "clap",
+ "cli_utils",
  "find_workspace_packages",
  "project",
+ "read_project_manifest",
  "relative-path",
  "sort_packages",
  "types",

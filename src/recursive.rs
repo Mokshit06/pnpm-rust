@@ -1,9 +1,9 @@
 use project::{Project, ProjectsGraph};
-use std::collections::HashMap;
+
 // use anyhow::Result;
 
 pub struct RecursiveOptions<'a> {
-    selected_projects_graph: ProjectsGraph<'a>,
+    pub selected_projects_graph: ProjectsGraph<'a>,
 }
 
 pub enum CommandFullName {
@@ -17,10 +17,9 @@ pub enum CommandFullName {
 
 pub fn recursive<'a>(
     all_projects: &[Project],
-    params: &[&str],
+    _params: &[&str],
     opts: RecursiveOptions<'a>,
-    // change to `CommandFullName`
-    cmd_full_name: &str,
+    _cmd_full_name: CommandFullName,
 ) -> bool {
     if all_projects.is_empty() {
         return false;
@@ -29,7 +28,8 @@ pub fn recursive<'a>(
     let pkgs = opts
         .selected_projects_graph
         .iter()
-        .map(|(_, ws_pkg)| ws_pkg.package);
+        .map(|(_, ws_pkg)| ws_pkg.package)
+        .collect::<Vec<_>>();
 
     if pkgs.is_empty() {
         return false;

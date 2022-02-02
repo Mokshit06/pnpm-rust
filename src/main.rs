@@ -1,4 +1,4 @@
-use clap::{App, AppSettings, ArgGroup, IntoApp, Parser, Subcommand};
+use clap::{AppSettings, IntoApp, Parser, Subcommand};
 use std::process::Command;
 mod commands;
 mod recursive;
@@ -49,7 +49,7 @@ fn main() {
         std::process::exit(0);
     }
 
-    if let Some(command) = args.command {
+    if let Some(_command) = args.command {
     } else {
         Args::into_app().print_help().unwrap();
     }

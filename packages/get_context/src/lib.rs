@@ -11,8 +11,8 @@ pub mod read_lockfiles {
     }
 
     pub fn read_lockfiles() {
-        let mut file_reads = Vec::<Box<dyn Future<Output = Option<Lockfile>>>>::new();
-        let mut lockfile_had_conflicts = false;
+        let _file_reads = Vec::<Box<dyn Future<Output = Option<Lockfile>>>>::new();
+        let _lockfile_had_conflicts = false;
 
         // file_reads.push(async {
         //     tokio::

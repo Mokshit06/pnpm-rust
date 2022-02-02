@@ -1,6 +1,6 @@
 use crate::base::{Resolution, ResolveResult, ResolvedVia};
 use read_project_manifest::read_project_manifest_only;
-use anyhow::Result;
+
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
 use relative_path::RelativePath;

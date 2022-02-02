@@ -1,14 +1,14 @@
-use lazy_static::lazy_static;
+
 use reqwest::{
     header::{HeaderMap, ACCEPT, AUTHORIZATION, USER_AGENT},
     Client,
 };
 
-const PNPM_USER_AGENT: &'static str = "pnpm"; // or maybe make it `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
+const PNPM_USER_AGENT: &str = "pnpm"; // or maybe make it `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
 
-const CORGI_DOC: &'static str =
+const CORGI_DOC: &str =
     "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
-const JSON_DOC: &'static str = "application/json";
+const JSON_DOC: &str = "application/json";
 const MAX_FOLLOWED_REDIRECTS: i32 = 20;
 
 pub struct FetchFromRegistry {

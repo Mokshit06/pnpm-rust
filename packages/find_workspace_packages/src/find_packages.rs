@@ -55,7 +55,7 @@ pub fn find_packages(root: &str, opts: Option<FindPackagesOpts>) -> Result<Vec<P
                         .unwrap()
                         .to_string_lossy()
                         .to_string(),
-                    manifest: manifest.manifest,
+                    manifest: manifest.manifest.expect("manifest not found"),
                     writer_options: manifest.writer_options,
                 }),
                 Err(_) => None,
@@ -66,7 +66,7 @@ pub fn find_packages(root: &str, opts: Option<FindPackagesOpts>) -> Result<Vec<P
 
 fn normalize_patterns(patterns: &[String]) -> Vec<String> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"\/?$").unwrap();
+        static ref RE: Regex = Regex::new(r"/?$").unwrap();
     }
 
     let mut normalized_patterns = vec![];

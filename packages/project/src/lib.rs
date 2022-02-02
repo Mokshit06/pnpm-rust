@@ -28,7 +28,7 @@ impl Project {
         if force || &self.manifest != updated_manifest {
             Ok(Some(write_project_manifest(
                 &self.writer_options.manifest_path,
-                &updated_manifest,
+                updated_manifest,
                 &self.writer_options,
             )?))
         } else {
