@@ -1,4 +1,5 @@
 use anyhow::{bail, Result};
+use relative_path::RelativePath;
 use std::fs::{self, File};
 use std::path::{Component, Path, PathBuf};
 use temp_path::temp_path;
@@ -7,7 +8,38 @@ mod temp_path;
 
 const STORE_VERSION: &str = "v3";
 
-pub fn store_path() {}
+pub fn store_path(pkg_root: &str, store_path: Option<&str>) -> Result<PathBuf> {
+    match store_path {
+        Some(store_path) if !is_homepath(store_path) => {
+            let store_base_path = path_absolute(store_path, pkg_root);
+            let ends_with = format!("{}{}", std::path::MAIN_SEPARATOR, STORE_VERSION);
+
+            if store_base_path.to_string_lossy().ends_with(&ends_with) {
+                Ok(store_base_path)
+            } else {
+                Ok(store_base_path.join(STORE_VERSION))
+            }
+        }
+        Some(_) | None => Ok(store_path_relative_to_home(
+            pkg_root,
+            store_path.map(|p| &p[2..]).unwrap_or(".pnpm-store"),
+        )?),
+    }
+}
+
+fn path_absolute<P: AsRef<Path>, S: AsRef<Path>>(file_path: P, cwd: S) -> PathBuf {
+    let home_dir = dirs::home_dir().expect("home_dir not found");
+    let (file_path, cwd) = (file_path.as_ref(), cwd.as_ref());
+    let path = file_path.to_string_lossy();
+
+    if is_homepath(&path) {
+        home_dir.join(&path[2..])
+    } else if file_path.is_absolute() {
+        file_path.to_path_buf()
+    } else {
+        cwd.join(&file_path)
+    }
+}
 
 fn store_path_relative_to_home(pkg_root: &str, rel_store: &str) -> Result<PathBuf> {
     let temp_file = temp_path(pkg_root);
@@ -22,10 +54,20 @@ fn store_path_relative_to_home(pkg_root: &str, rel_store: &str) -> Result<PathBu
     }
 
     let result = match root_link_target(&temp_file) {
-        Ok(mountpoint) => {
-            let mountpoint_parent = mountpoint.parent().expect("Expected parent of mountpoint");
+        Ok(mut mountpoint) => {
+            let mountpoint_parent = mountpoint.parent().unwrap_or_else(|| Path::new("."));
 
-            todo!("implement the rest from [https://github.com/pnpm/store-path/blob/main/src/index.ts]")
+            if dirs_are_equal(&mountpoint_parent.to_string_lossy(), &mountpoint)
+                && can_link_to_subdir(&temp_file, &mountpoint_parent)?
+            {
+                mountpoint = mountpoint_parent.to_path_buf();
+            }
+
+            if dirs_are_equal(pkg_root, &mountpoint) {
+                home_dir.join(rel_store).join(STORE_VERSION)
+            } else {
+                mountpoint.join(rel_store).join(STORE_VERSION)
+            }
         }
         Err(_) => home_dir.join(rel_store).join(STORE_VERSION),
     };
@@ -34,8 +76,12 @@ fn store_path_relative_to_home(pkg_root: &str, rel_store: &str) -> Result<PathBu
     Ok(result)
 }
 
-fn can_link_to_subdir(file_to_link: &PathBuf, dir: &PathBuf) -> Result<bool> {
-    let temp_dir = temp_path(dir);
+fn dirs_are_equal<S: AsRef<Path>>(dir_1: &str, dir_2: S) -> bool {
+    RelativePath::new(dir_1).to_path(dir_2).to_string_lossy() == "."
+}
+
+fn can_link_to_subdir<P: AsRef<Path>, S: AsRef<Path>>(file_to_link: P, dir: S) -> Result<bool> {
+    let temp_dir = temp_path(&dir);
     let result = match fs::create_dir_all(&temp_dir) {
         Ok(_) => can_link(&file_to_link, temp_path(dir)),
         Err(_) => false,
@@ -69,8 +115,6 @@ fn root_link_target<P: AsRef<Path>>(file_path: P) -> Result<PathBuf> {
 }
 
 fn next_path(from: &str, to: &Path) -> PathBuf {
-    use relative_path::RelativePath;
-
     let diff = RelativePath::new(&from).to_path(to);
     let diff = diff.to_string_lossy();
     // convert `usize` to `isize` for js compat
@@ -101,10 +145,8 @@ fn can_link<P: AsRef<Path>, S: AsRef<Path>>(temp_dir: P, file_to_link: S) -> boo
     }
 }
 
-fn safe_rmdir() {}
-
-fn dirs_are_equal() {}
-
-fn get_homedir() {}
-
-fn is_homepath() {}
+fn is_homepath(file_path: &str) -> bool {
+    let mut chars = file_path.chars().map(String::from);
+    matches!(chars.position(|c| c == "~/"), Some(0))
+        || matches!(chars.position(|c| c == "~\\"), Some(0))
+}
