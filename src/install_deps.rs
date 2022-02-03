@@ -37,6 +37,7 @@ pub struct InstallDepsOpts<'a> {
     selected_projects_graph: Option<ProjectsGraph<'a>>,
     engine_strict: Option<bool>,
     node_version: Option<String>,
+    sort: bool,
 }
 
 pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Result<()> {
@@ -73,7 +74,8 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Resul
             None => opts
                 .workspace_dir
                 .as_ref()
-                .map(|workspace_dir| find_workspace_packages(workspace_dir)).unwrap_or_default(),
+                .map(|workspace_dir| find_workspace_packages(workspace_dir))
+                .unwrap_or_default(),
         };
 
         if let Some(_workspace_dir) = &opts.workspace_dir {
@@ -107,6 +109,7 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Resul
                     params,
                     RecursiveOptions {
                         selected_projects_graph,
+                        sort: opts.sort,
                     },
                     if opts.update.unwrap_or(false) {
                         CommandFullName::Update
@@ -173,10 +176,7 @@ fn select_project_by_dir<'a>(
     search_dir: &str,
 ) -> Option<ProjectsGraph<'a>> {
     let project = all_projects.iter().find(|Project { dir, .. }| {
-        RelativePath::new(dir)
-            .to_path(search_dir)
-            .to_string_lossy()
-            == ""
+        RelativePath::new(dir).to_path(search_dir).to_string_lossy() == ""
     });
 
     project.map(|project| {

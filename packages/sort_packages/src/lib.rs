@@ -28,3 +28,8 @@ pub fn sequence_graph<'a>(pkg_graph: &'a ProjectsGraph<'a>) -> SequencerResult<'
         groups: vec![keys.clone()],
     })
 }
+
+pub fn sort_packages<'a, 'r>(pkg_graph: &'r ProjectsGraph<'a>) -> Vec<Vec<&'r String>> {
+    let graph_sequencer_result = sequence_graph(pkg_graph);
+    graph_sequencer_result.chunks
+}
