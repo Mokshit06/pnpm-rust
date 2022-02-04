@@ -170,6 +170,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "client"
+version = "0.1.0"
+dependencies = [
+ "base64 0.13.0",
+ "pretty_assertions",
+ "url",
+]
+
+[[package]]
 name = "constants"
 version = "0.1.0"
 
@@ -1316,6 +1325,13 @@ dependencies = [
 [[package]]
 name = "store_connection_manager"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "serde",
+ "serde_json",
+ "store_path",
+]
 
 [[package]]
 name = "store_path"
