@@ -17,7 +17,7 @@ impl GitHostInfo {
 
 #[derive(Debug)]
 pub struct GitHostSegments<'a> {
-    pub user: Option<&'a str>,
+    pub user: &'a str,
     pub project: &'a str,
     pub committish: Option<&'a str>,
 }
@@ -45,7 +45,7 @@ lazy_static! {
                     }
 
                     if r#type.is_none() {
-                        committish = Some(&url.fragment().unwrap()[1..]);
+                        committish = Some(url.fragment().unwrap());
                     }
 
                     if let Some(ref mut project) = project {
@@ -54,15 +54,14 @@ lazy_static! {
                         }
                     }
 
-                    if user.is_none() || project.is_none() {
-                        return None;
+                    match (user,project) {
+                        (Some(user), Some(project)) => Some(GitHostSegments {
+                            committish,
+                            project,
+                            user
+                        }),
+                        _ => None
                     }
-
-                    Some(GitHostSegments {
-                        committish,
-                        project: project.unwrap(),
-                        user
-                    })
                 },
             }
         ),
@@ -72,7 +71,32 @@ lazy_static! {
                 protocols: &["git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "bitbucket.org",
                 treepath: Some("src"),
-                extract: |_| None
+                extract: |url| {
+                    let mut iter = url.as_str().strip_prefix(&format!("{}:",url.scheme())).unwrap().split('/');
+                    iter.next();
+                    let user = iter.next();
+                    let mut project = iter.next();
+                    let aux = iter.next();
+
+                    if matches!(aux, Some("get")) {
+                        return None
+                    }
+
+                    if let Some(ref mut project) = project {
+                        if let Some(project_without_suffix) = project.strip_suffix(".git") {
+                            *project = project_without_suffix;
+                        }
+                    }
+
+                    match (user,project) {
+                        (Some(user), Some(project)) => Some(GitHostSegments {
+                            committish: url.fragment(),
+                            user,
+                            project,
+                        }),
+                        _ => None
+                    }
+                }
             }
         ),
         (
@@ -81,7 +105,7 @@ lazy_static! {
                 protocols: &["git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "gitlab.com",
                 treepath: Some("tree"),
-                extract: |_| None
+                extract: |url| todo!()
             }
         ),
         (
@@ -90,7 +114,7 @@ lazy_static! {
                 protocols: &["git:", "git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "gist.github.com",
                 treepath: None,
-                extract: |_| None
+                extract: |_| todo!()
             }
         ),
         (
@@ -99,7 +123,7 @@ lazy_static! {
                 protocols: &["git+ssh:", "https:"],
                 domain: "git.sr.ht",
                 treepath: Some("tree"),
-                extract: |_| None
+                extract: |_| todo!()
             }
         )
     ]);
@@ -114,6 +138,4 @@ lazy_static! {
 }
 
 #[cfg(test)]
-mod tests {
-
-}
+mod tests {}

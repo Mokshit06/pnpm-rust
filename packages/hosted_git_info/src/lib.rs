@@ -141,10 +141,7 @@ fn from_url_internal(git_url: &str) -> Option<GitHost> {
                     let segments = git_host_info.extract(&parsed);
                     match segments {
                         Some(segments) => {
-                            user = segments
-                                .user
-                                .as_ref()
-                                .map(|segment| decode(segment).unwrap().into_owned().into());
+                            user = Some(decode(segments.user).unwrap());
                             project = decode(segments.project).unwrap().to_string();
                             committish = segments
                                 .committish
