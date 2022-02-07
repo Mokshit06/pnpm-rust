@@ -1,5 +1,4 @@
 use clap::{AppSettings, IntoApp, Parser, Subcommand};
-use std::process::Command;
 mod commands;
 mod recursive;
 use commands::{add, install};
@@ -26,6 +25,10 @@ enum Commands {
     Run,
 }
 
+pub trait Command {
+    fn exec(&self) {}
+}
+
 impl Commands {
     fn exec(&self) {
         match &self {
@@ -40,7 +43,7 @@ fn main() {
     let args = Args::parse();
 
     if !args.npm.is_empty() {
-        Command::new("npm")
+        std::process::Command::new("npm")
             .args(args.npm)
             .spawn()
             .expect("Error spawning npm task")

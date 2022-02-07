@@ -1,8 +1,9 @@
+use crate::Command;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
 pub struct Add {}
 
-impl Add {
-    pub fn exec(&self) {}
+impl Command for Add {
+    fn exec(&self) {}
 }

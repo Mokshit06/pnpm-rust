@@ -23,9 +23,9 @@ impl Credentials {
 }
 
 pub fn get_credentials_by_uri(
-    config: HashMap<String, String>,
+    config: &HashMap<String, String>,
     url: &str,
-    user_config: Option<HashMap<String, String>>,
+    user_config: Option<&HashMap<String, String>>,
 ) -> Result<Credentials, ParseError> {
     let nerfed = url.to_nerf_dart()?;
     let defnerf = config
@@ -35,14 +35,14 @@ pub fn get_credentials_by_uri(
     let credentials = get_scoped_credentials(
         &nerfed,
         format!("{}:", nerfed).as_str(),
-        &config,
-        &user_config,
+        config,
+        user_config,
     );
 
     if nerfed != defnerf {
         Ok(credentials)
     } else {
-        Ok(credentials.merge(get_scoped_credentials(&nerfed, "", &config, &user_config)))
+        Ok(credentials.merge(get_scoped_credentials(&nerfed, "", config, user_config)))
     }
 }
 
@@ -50,7 +50,7 @@ fn get_scoped_credentials(
     nerfed: &str,
     scope: &str,
     config: &HashMap<String, String>,
-    user_config: &Option<HashMap<String, String>>,
+    user_config: Option<&HashMap<String, String>>,
 ) -> Credentials {
     let mut credentials = Credentials::new();
 
@@ -65,6 +65,11 @@ fn get_scoped_credentials(
                 // TODO: change to recoverable errors
                 panic!("BAD_TOKEN_HELPER_PATH: {}tokenHelper must be an absolute path, without arguments", scope);
             }
+
+            // TODO: make windows compat
+            // probably the only change required is to use `cmd` instead of `sh`
+            #[cfg(target_os = "windows")]
+            todo!("Windows not supported");
 
             let spawn_result = Command::new("sh").arg("-C").arg(helper).output().unwrap();
             if !matches!(spawn_result.status.code(), Some(0)) {
@@ -99,7 +104,7 @@ fn get_scoped_credentials(
 
     let username = config.get(&format!("{}username", scope));
     let password = config.get(&format!("{}_password", scope)).map(|password| {
-        if scope == "" {
+        if scope.is_empty() {
             String::from(password)
         } else {
             String::from_utf8(base64::decode(password).expect("Can't decode password")).unwrap()
@@ -140,7 +145,7 @@ mod tests {
         };
 
         assert_eq!(
-            get_credentials_by_uri(config, "https://registry.com", None),
+            get_credentials_by_uri(&config, "https://registry.com", None),
             Ok(Credentials {
                 always_auth: Some(false),
                 auth_header_value: Some("Bearer f23jj93f32dsaf==".to_string())

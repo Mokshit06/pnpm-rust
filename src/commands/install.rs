@@ -1,8 +1,9 @@
+use crate::Command;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
 pub struct Install {}
 
-impl Install {
-    pub fn exec(&self) {}
+impl Command for Install {
+    fn exec(&self) {}
 }
