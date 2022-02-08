@@ -44,7 +44,7 @@ fn get_manifest_paths<P: AsRef<Path> + Sync>(
                 .filter_map(Result::ok)
                 .filter(|path| {
                     !ignore_pattern
-                        .iter()
+                        .par_iter()
                         .any(|ignore| ignore.matches_path(path))
                 })
                 .collect::<Vec<_>>()
@@ -57,7 +57,6 @@ fn get_manifest_paths<P: AsRef<Path> + Sync>(
         manifest_paths.extend(glob(&normalize_pattern("."))?.filter_map(Result::ok));
     }
 
-    // manifest_paths.retain(|path| !to_ignore.contains(path));
     manifest_paths.sort_by(|path_1, path_2| path_1.parent().partial_cmp(&path_2.parent()).unwrap());
 
     Ok(manifest_paths)
@@ -83,8 +82,8 @@ pub fn find_packages<P: AsRef<Path> + Sync>(
 
     Ok(manifest_paths
         .iter()
-        .filter_map(|manifest_path| {
-            match bench("read", || read_exact_project_manifest(&manifest_path)) {
+        .filter_map(
+            |manifest_path| match read_exact_project_manifest(&manifest_path) {
                 Ok(manifest) => Some(Project {
                     dir: manifest_path
                         .parent()
@@ -95,8 +94,8 @@ pub fn find_packages<P: AsRef<Path> + Sync>(
                     writer_options: manifest.writer_options,
                 }),
                 Err(_) => None,
-            }
-        })
+            },
+        )
         .collect::<Vec<_>>())
 }
 
@@ -106,14 +105,6 @@ fn normalize_pattern(pattern: &str) -> String {
     }
 
     RE.replace(pattern, "/package.json").to_string()
-}
-
-fn bench<T, F: FnOnce() -> T>(name: &str, closure: F) -> T {
-    let now = std::time::Instant::now();
-    let result = closure();
-    let elapsed = now.elapsed();
-    println!("{}: {}ms", name, elapsed.as_millis());
-    result
 }
 
 #[cfg(test)]
@@ -137,16 +128,14 @@ mod tests {
 
     #[test]
     fn find_packages_by_patterns() {
-        let packages = bench("find_packages", || {
-            find_packages(
-                Path::new("fixtures").join("many-pkgs"),
-                Some(FindPackagesOpts {
-                    patterns: Some(vec!["components/**".to_string()]),
-                    include_root: None,
-                    ignore: None,
-                }),
-            )
-        });
+        let packages = find_packages(
+            Path::new("fixtures").join("many-pkgs"),
+            Some(FindPackagesOpts {
+                patterns: Some(vec!["components/**".to_string()]),
+                include_root: None,
+                ignore: None,
+            }),
+        );
 
         assert_matches!(packages, Ok(packages) => {
             assert_matches!(&packages[..], [
