@@ -11,7 +11,12 @@ use lru::LruCache;
 use regex::Regex;
 use std::sync::Mutex;
 use url::Url;
-use urlencoding::{decode, encode};
+use urlencoding::decode;
+
+// similar to js `str.indexOf("")`
+fn index_of(original_str: &str, to_find: &str) -> isize {
+    original_str.find(to_find).map(|i| i as isize).unwrap_or(-1)
+}
 
 lazy_static! {
     static ref CACHE: Mutex<LruCache<String, Option<GitHost>>> = Mutex::new(LruCache::new(1000));
@@ -128,7 +133,7 @@ fn from_url_internal(git_url: &str) -> Option<GitHost> {
                     }
 
                     if let Some(hash) = parsed.fragment() {
-                        committish = Some(decode(&hash).unwrap());
+                        committish = Some(decode(hash).unwrap());
                     }
 
                     default_representation = "shortcut";
@@ -183,10 +188,10 @@ fn parse_git_url(git_url: &str) -> Url {
 }
 
 fn correct_url(git_url: &str) -> String {
-    let first_at = git_url.find('@').map(|i| i as isize).unwrap_or(-1);
+    let first_at = index_of(git_url, "@");
     let last_hash = git_url.rfind('#');
-    let mut first_colon = git_url.find(':').map(|i| i as isize).unwrap_or(-1);
-    let mut last_colon = if let Some(last_hash) = last_hash {
+    let mut first_colon = index_of(git_url, ":");
+    let last_colon = if let Some(last_hash) = last_hash {
         (&git_url[last_hash..])
             .rfind(':')
             .map(|i| i as isize)
@@ -213,8 +218,8 @@ fn correct_url(git_url: &str) -> String {
             &git_url[last_colon as usize + 1..]
         );
         // // and we find our new : positions
-        first_colon = corrected.find(':').map(|i| i as isize).unwrap_or(-1);
-        last_colon = corrected.rfind(':').map(|i| i as isize).unwrap_or(-1);
+        first_colon = index_of(&corrected, ":");
+        // last_colon = corrected.rfind(':').map(|i| i as isize).unwrap_or(-1);
     }
 
     if first_colon == -1 && !git_url.contains("//") {
@@ -229,14 +234,14 @@ fn correct_url(git_url: &str) -> String {
 }
 
 fn correct_protocol(url: &str) -> String {
-    let first_colon = url.find(':').map(|i| i as isize).unwrap_or(-1);
+    let first_colon = index_of(url, ":");
     let proto = &url[0..first_colon as usize + 1];
 
     if KNOWN_PROTOCOLS.contains(&proto) {
         return url.to_string();
     }
 
-    let first_at = url.find('@').map(|i| i as isize).unwrap_or(-1);
+    let first_at = index_of(url, "@");
     if first_at > -1 {
         if first_at > first_colon {
             return format!("git+ssh://{}", url);
@@ -245,7 +250,7 @@ fn correct_protocol(url: &str) -> String {
         }
     }
 
-    let double_slash = url.find("//").map(|i| i as isize).unwrap_or(-1);
+    let double_slash = index_of(url, "//");
     if double_slash == first_colon + 1 {
         return url.to_string();
     }
@@ -261,16 +266,13 @@ fn is_github_shorthand(url: &str) -> bool {
         static ref RE: Regex = Regex::new(r"\s").unwrap();
     }
 
-    let first_hash = url.find('#').map(|i| i as isize).unwrap_or(-1);
-    let first_slash = url.find('/').map(|i| i as isize).unwrap_or(-1);
-    let second_slash = (&url[first_slash as usize + 1..])
-        .find('/')
-        .map(|i| i as isize)
-        .unwrap_or(-1);
-    let first_colon = url.find(':').map(|i| i as isize).unwrap_or(-1);
+    let first_hash = index_of(url, "#");
+    let first_slash = index_of(url, "/");
+    let second_slash = index_of(&url[first_slash as usize + 1..], "/");
+    let first_colon = index_of(url, ":");
     // let firstSpace = /\s/.exec(arg);
     let first_space = RE.find(url);
-    let first_at = url.find('@').map(|i| i as isize).unwrap_or(-1);
+    let first_at = index_of(url, "@");
 
     let space_only_after_hash = match first_space {
         Some(first_space) => first_hash > -1 && first_space.start() > first_hash as usize,
@@ -305,4 +307,24 @@ fn is_github_shorthand(url: &str) -> bool {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn valid_urls_parse_properly() {
+        let host = from_url("git@github.com:npm/hosted-git-info.git");
+
+        assert_eq!(
+            host,
+            Some(GitHost {
+                r#type: String::from("github"),
+                user: Some(String::from("npm")),
+                auth: None,
+                project: String::from("hosted-git-info"),
+                committish: None,
+                default_representation: String::from("sshurl")
+            })
+        );
+    }
+}

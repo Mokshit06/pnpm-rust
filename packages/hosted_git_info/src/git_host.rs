@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct GitHost {
     pub r#type: String,
     pub user: Option<String>,

@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use std::{collections::HashMap, ops::Not};
+use std::collections::HashMap;
 use url::Url;
 
 pub struct GitHostInfo {
@@ -15,12 +15,13 @@ impl GitHostInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct GitHostSegments<'a> {
     pub user: &'a str,
     pub project: &'a str,
     pub committish: Option<&'a str>,
 }
+
 lazy_static! {
     pub static ref GIT_HOSTS: HashMap<&'static str, GitHostInfo> = HashMap::from_iter([
         (
@@ -30,22 +31,21 @@ lazy_static! {
                 domain: "github.com",
                 treepath: Some("tree"),
                 extract: |url| {
-                    let mut iter = url.as_str().strip_prefix(&format!("{}:",url.scheme())).unwrap().split('/');
-                    iter.next();
-                    let user = iter.next();
-                    let mut project = iter.next();
-                    let r#type = iter.next();
-                    let mut committish = iter.next();
+                    let mut segments = url.path_segments().unwrap();
+                    let user = segments.next();
+                    let mut project = segments.next();
+                    let r#type = segments.next();
+                    let mut committish = segments.next();
 
                     dbg!(&user,&project,&r#type,&committish);
 
                     // if type is not `tree`
-                    if r#type.is_some() && r#type.unwrap() != "tree" {
+                    if matches!(r#type, Some(url_type) if url_type != "tree") {
                         return None;
                     }
 
                     if r#type.is_none() {
-                        committish = Some(url.fragment().unwrap());
+                        committish = url.fragment();
                     }
 
                     if let Some(ref mut project) = project {
@@ -72,11 +72,10 @@ lazy_static! {
                 domain: "bitbucket.org",
                 treepath: Some("src"),
                 extract: |url| {
-                    let mut iter = url.as_str().strip_prefix(&format!("{}:",url.scheme())).unwrap().split('/');
-                    iter.next();
-                    let user = iter.next();
-                    let mut project = iter.next();
-                    let aux = iter.next();
+                    let mut segments = url.path_segments().unwrap();
+                    let user = segments.next();
+                    let mut project = segments.next();
+                    let aux = segments.next();
 
                     if matches!(aux, Some("get")) {
                         return None
@@ -105,7 +104,7 @@ lazy_static! {
                 protocols: &["git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "gitlab.com",
                 treepath: Some("tree"),
-                extract: |url| todo!()
+                extract: |_url| todo!()
             }
         ),
         (
@@ -138,4 +137,23 @@ lazy_static! {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn github_extracts_segments_correctly() {
+        let host_info = GIT_HOSTS.get("github").unwrap();
+        let url = url::Url::parse("git+ssh://git@github.com/npm/hosted-git-info.git").unwrap();
+        let segments = host_info.extract(&url);
+
+        assert_eq!(
+            segments,
+            Some(GitHostSegments {
+                committish: None,
+                project: "hosted-git-info",
+                user: "npm"
+            })
+        )
+    }
+}
