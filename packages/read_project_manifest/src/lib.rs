@@ -6,7 +6,7 @@ use std::path::Path;
 use tempfile::NamedTempFile;
 use types::BaseManifest;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct WriterOptions {
     pub insert_final_newline: Option<bool>,
     pub manifest_path: String,
@@ -104,7 +104,7 @@ pub fn read_project_manifest<P: AsRef<Path>>(project_dir: P) -> Result<ProjectMa
             },
         }),
         Err(error) => match error.downcast_ref::<std::io::Error>() {
-            Some(file_error) => match file_error.kind() {
+            Some(file_error) => match dbg!(file_error.kind()) {
                 std::io::ErrorKind::NotFound => Ok(ProjectManifest {
                     file_name: "package.json".to_string(),
                     manifest: None,
@@ -119,6 +119,20 @@ pub fn read_project_manifest<P: AsRef<Path>>(project_dir: P) -> Result<ProjectMa
             None => Err(error),
         },
     }
+}
+
+pub fn read_exact_project_manifest<P: AsRef<Path>>(manifest_path: P) -> Result<ProjectManifest> {
+    let manifest_path = manifest_path.as_ref().to_string_lossy();
+    let manifest = read_json_file(&manifest_path)?;
+
+    Ok(ProjectManifest {
+        file_name: "package.json".to_string(),
+        manifest: Some(manifest.data),
+        writer_options: WriterOptions {
+            insert_final_newline: None,
+            manifest_path: manifest_path.to_string(),
+        },
+    })
 }
 
 mod read_file {

@@ -11,6 +11,7 @@ use types::BaseManifest;
 //     ) -> Result<Option<()>>;
 // }
 
+#[derive(Debug, PartialEq)]
 pub struct Project {
     pub dir: String,
     pub manifest: BaseManifest,
@@ -36,7 +37,6 @@ impl Project {
         }
     }
 }
-
 
 pub struct Graph<'a> {
     pub dependencies: Vec<String>,
