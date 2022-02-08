@@ -146,7 +146,8 @@ fn from_url_internal(git_url: &str) -> Option<GitHost> {
                     let segments = git_host_info.extract(&parsed);
                     match segments {
                         Some(segments) => {
-                            user = Some(decode(segments.user).unwrap());
+                            let decoded_str = decode(&segments.user).unwrap();
+                            user = Some(std::borrow::Cow::from(decoded_str.to_string()));
                             project = decode(segments.project).unwrap().to_string();
                             committish = segments
                                 .committish
@@ -175,7 +176,6 @@ fn from_url_internal(git_url: &str) -> Option<GitHost> {
 // then we try to clean the url and parse that result instead
 // THIS FUNCTION SHOULD NEVER THROW
 fn parse_git_url(git_url: &str) -> Url {
-    dbg!(git_url);
     let result = Url::parse(git_url);
 
     if let Ok(result) = result {
@@ -183,7 +183,6 @@ fn parse_git_url(git_url: &str) -> Url {
     }
 
     let corrected_url = correct_url(git_url);
-    dbg!(&corrected_url);
     Url::parse(&corrected_url).unwrap()
 }
 
@@ -304,6 +303,14 @@ fn is_github_shorthand(url: &str) -> bool {
         && at_only_after_hash
         && colon_only_after_hash
         && second_slash_only_after_hash
+}
+
+fn bench<T, F: FnOnce() -> T>(name: &str, closure: F) -> T {
+    let now = std::time::Instant::now();
+    let result = closure();
+    let elapsed = now.elapsed();
+    println!("{}: {}ms", name, elapsed.as_millis());
+    result
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use url::Url;
 
@@ -17,7 +18,7 @@ impl GitHostInfo {
 
 #[derive(Debug, PartialEq)]
 pub struct GitHostSegments<'a> {
-    pub user: &'a str,
+    pub user: Cow<'a, str>,
     pub project: &'a str,
     pub committish: Option<&'a str>,
 }
@@ -36,8 +37,6 @@ lazy_static! {
                     let mut project = segments.next();
                     let r#type = segments.next();
                     let mut committish = segments.next();
-
-                    dbg!(&user,&project,&r#type,&committish);
 
                     // if type is not `tree`
                     if matches!(r#type, Some(url_type) if url_type != "tree") {
@@ -58,7 +57,7 @@ lazy_static! {
                         (Some(user), Some(project)) => Some(GitHostSegments {
                             committish,
                             project,
-                            user
+                            user: Cow::from(user)
                         }),
                         _ => None
                     }
@@ -90,7 +89,7 @@ lazy_static! {
                     match (user,project) {
                         (Some(user), Some(project)) => Some(GitHostSegments {
                             committish: url.fragment(),
-                            user,
+                            user: Cow::from(user),
                             project,
                         }),
                         _ => None
@@ -104,7 +103,35 @@ lazy_static! {
                 protocols: &["git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "gitlab.com",
                 treepath: Some("tree"),
-                extract: |_url| todo!()
+                extract: |url: &Url| {
+                    let path = url.path();
+                    let mut segments = url.path_segments().unwrap().collect::<Vec<_>>();
+
+                    if path.contains("/-/") || path.contains("/archive.tar.gz") {
+                        return None;
+                    }
+
+                    let mut project = segments.pop();
+
+                    if let Some(ref mut project) = project {
+                        if let Some(new_project) = project.strip_prefix(".git") {
+                            *project = new_project
+                        }
+                    }
+
+                    let user = segments.join("/");
+
+                    match (user.is_empty(), project) {
+                        (false, Some(project)) => {
+                            Some(GitHostSegments {
+                                user: Cow::from(user),
+                                project,
+                                committish: url.fragment()
+                            })
+                        },
+                        _ => None
+                    }
+                }
             }
         ),
         (
@@ -152,8 +179,8 @@ mod tests {
             Some(GitHostSegments {
                 committish: None,
                 project: "hosted-git-info",
-                user: "npm"
+                user: Cow::from("npm")
             })
-        )
+        );
     }
 }
