@@ -1,5 +1,5 @@
 [package]
-name = "store_path"
+name = "temp_path"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,3 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.4"
-anyhow = "1.0.53"
-dirs = "4.0.0"
-relative-path = "1.6.0"
-temp_path = { path = "../temp_path" }

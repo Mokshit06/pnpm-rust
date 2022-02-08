@@ -2,9 +2,7 @@ use anyhow::{bail, Result};
 use relative_path::RelativePath;
 use std::fs::{self, File};
 use std::path::{Component, Path, PathBuf};
-use temp_path::temp_path;
-
-mod temp_path;
+use temp_path::temp_path_atomic;
 
 const STORE_VERSION: &str = "v3";
 
@@ -42,7 +40,7 @@ fn path_absolute<P: AsRef<Path>, S: AsRef<Path>>(file_path: P, cwd: S) -> PathBu
 }
 
 fn store_path_relative_to_home(pkg_root: &str, rel_store: &str) -> Result<PathBuf> {
-    let temp_file = temp_path(pkg_root);
+    let temp_file = temp_path_atomic(pkg_root);
     fs::create_dir_all(temp_file.parent().unwrap_or_else(|| Path::new(".")))?;
     File::create(&temp_file)?;
     let home_dir = dirs::home_dir().expect("home_dir not found");
@@ -81,9 +79,9 @@ fn dirs_are_equal<S: AsRef<Path>>(dir_1: &str, dir_2: S) -> bool {
 }
 
 fn can_link_to_subdir<P: AsRef<Path>, S: AsRef<Path>>(file_to_link: P, dir: S) -> Result<bool> {
-    let temp_dir = temp_path(&dir);
+    let temp_dir = temp_path_atomic(&dir);
     let result = match fs::create_dir_all(&temp_dir) {
-        Ok(_) => can_link(&file_to_link, temp_path(dir)),
+        Ok(_) => can_link(&file_to_link, temp_path_atomic(dir)),
         Err(_) => false,
     };
     fs::remove_dir_all(temp_dir)?;
@@ -104,7 +102,7 @@ fn root_link_target<P: AsRef<Path>>(file_path: P) -> Result<PathBuf> {
     };
 
     loop {
-        if can_link(&file_path, temp_path(&dir)) {
+        if can_link(&file_path, temp_path_atomic(&dir)) {
             break Ok(dir);
         } else if dir == end {
             bail!("{} cannot be linked anywhere", file_path.to_string_lossy())
@@ -134,7 +132,7 @@ fn next_path(from: &str, to: &Path) -> PathBuf {
 }
 
 fn can_link<P: AsRef<Path>, S: AsRef<Path>>(temp_dir: P, file_to_link: S) -> bool {
-    let new_path = temp_path(&temp_dir);
+    let new_path = temp_path_atomic(&temp_dir);
     match fs::hard_link(file_to_link, &new_path) {
         Ok(_) => {
             // `ok()` will ignore this error

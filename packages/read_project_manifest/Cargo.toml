@@ -13,3 +13,9 @@ json5 = "0.4.1"
 serde_yaml = "0.8"
 serde_json = "1.0.78"
 tempfile = "3.3.0"
+temp_path = { path = "../temp_path" }
+lazy_static = "1.4.0"
+
+[dev-dependencies]
+assert_matches = "1.5"
+pretty_assertions = "1.0.0"

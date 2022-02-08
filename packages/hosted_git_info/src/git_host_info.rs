@@ -23,6 +23,38 @@ pub struct GitHostSegments<'a> {
     pub committish: Option<&'a str>,
 }
 
+fn gist_extract(url: &Url) -> Option<GitHostSegments<'_>> {
+    let mut segments = url.path_segments().unwrap();
+    let mut user = segments.next();
+    let mut project = segments.next();
+    let aux = segments.next();
+
+    if let Some("raw") = aux {
+        return None;
+    }
+
+    if project.is_none() {
+        if user.is_none() {
+            return None;
+        }
+
+        project = user.take();
+    }
+
+    if let Some(ref mut project) = project {
+        if let Some(project_without_suffix) = project.strip_suffix(".git") {
+            *project = project_without_suffix;
+        }
+    }
+
+    todo!()
+    // Some(GitHostSegments {
+    //     user,
+    //     pro
+    // })
+    // return { user, project, committish: url.hash.slice(1) }
+}
+
 lazy_static! {
     pub static ref GIT_HOSTS: HashMap<&'static str, GitHostInfo> = HashMap::from_iter([
         (
@@ -140,7 +172,7 @@ lazy_static! {
                 protocols: &["git:", "git+ssh:", "git+https:", "ssh:", "https:"],
                 domain: "gist.github.com",
                 treepath: None,
-                extract: |_| todo!()
+                extract: gist_extract
             }
         ),
         (
