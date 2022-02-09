@@ -31,7 +31,7 @@ impl Lockfile {
 
 pub type ResolvedDependencies = HashMap<String, String>;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectSnapshot {
     pub specifiers: ResolvedDependencies,
@@ -47,7 +47,7 @@ impl ProjectSnapshot {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum LockfileResolution {
     RegistryResolution {
@@ -72,12 +72,12 @@ pub enum LockfileResolution {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct SnapshotEngines {
     node: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageSnapshot {
     id: Option<String>,

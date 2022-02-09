@@ -6,7 +6,7 @@ pub mod types;
 mod write;
 
 fn comver_to_semver(comver: &str) -> String {
-    if !comver.contains(".") {
+    if !comver.contains('.') {
         format!("{}.0.0", comver)
     } else {
         format!("{}.0", comver)

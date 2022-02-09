@@ -139,8 +139,8 @@ mod package {
     #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub struct DependencyMeta {
-        injected: Option<bool>,
-        node: Option<String>,
+        pub injected: Option<bool>,
+        pub node: Option<String>,
     }
 
     #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

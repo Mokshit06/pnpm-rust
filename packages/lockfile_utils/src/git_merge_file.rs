@@ -1,16 +1,18 @@
-use crate::{merge_changes::merge_changes, types::Lockfile};
+use crate::merge_changes::merge_changes;
+use crate::read::LockfileFile;
+use crate::types::Lockfile;
 
 const MERGE_CONFLICT_PARENT: &'static str = "|||||||";
 const MERGE_CONFLICT_END: &'static str = ">>>>>>>";
 const MERGE_CONFLICT_THEIRS: &'static str = "=======";
 const MERGE_CONFLICT_OURS: &'static str = "<<<<<<<";
 
-pub fn autofix_merge_conflicts(file_content: &str) -> Lockfile {
+pub fn autofix_merge_conflicts(file_content: &str) -> LockfileFile {
     let ParsedMergeFile { ours, theirs } = parse_merge_file(&file_content);
 
     merge_changes(
-        serde_yaml::from_str::<Lockfile>(&ours).unwrap(),
-        serde_yaml::from_str::<Lockfile>(&theirs).unwrap(),
+        serde_yaml::from_str::<LockfileFile>(&ours).unwrap(),
+        serde_yaml::from_str::<LockfileFile>(&theirs).unwrap(),
     )
 }
 
@@ -58,7 +60,7 @@ fn parse_merge_file(file_content: &str) -> ParsedMergeFile {
     }
 
     ParsedMergeFile {
-        ours: ours.join("\n").to_string(),
-        theirs: theirs.join("\n").to_string(),
+        ours: ours.join("\n"),
+        theirs: theirs.join("\n"),
     }
 }
