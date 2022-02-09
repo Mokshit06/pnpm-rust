@@ -47,7 +47,7 @@ pub fn parse_pref(pref: &str) -> Option<HostedPackageSpec> {
             Some(colons_pos) => {
                 let protocol = &pref[0..colons_pos];
                 if GIT_PROTOCOLS.contains(&protocol.to_lowercase().as_str()) {
-                    let parsed_url = Url::parse(pref);
+                    let parsed_url = Url::parse(&escape_colon(pref));
 
                     match parsed_url {
                         Ok(parsed_url) if parsed_url.scheme().is_empty() => None,
@@ -244,4 +244,48 @@ fn access_repository(repository: &str) -> bool {
         .args(["ls-remote", "--exit-code", repository, "HEAD"])
         .output()
         .is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn right_colon_is_escaped() {
+        let tests = [
+            [
+                "ssh://username:password@example.com:repo.git",
+                "ssh://username:password@example.com/repo.git",
+            ],
+            [
+                "ssh://username:password@example.com:repo/@foo.git",
+                "ssh://username:password@example.com/repo/@foo.git",
+            ],
+            [
+                "ssh://username:password@example.com:22/repo/@foo.git",
+                "ssh://username:password@example.com:22/repo/@foo.git",
+            ],
+            [
+                "ssh://username:password@example.com:22repo/@foo.git",
+                "ssh://username:password@example.com/22repo/@foo.git",
+            ],
+            [
+                "git+ssh://username:password@example.com:repo.git",
+                "ssh://username:password@example.com/repo.git",
+            ],
+            [
+                "git+ssh://username:password@example.com:repo/@foo.git",
+                "ssh://username:password@example.com/repo/@foo.git",
+            ],
+            [
+                "git+ssh://username:password@example.com:22/repo/@foo.git",
+                "ssh://username:password@example.com:22/repo/@foo.git",
+            ],
+        ];
+
+        for [input, expected] in tests {
+            let parsed = parse_pref(input).unwrap();
+            assert_eq!(parsed.fetch_spec, expected, "error in {}", input);
+        }
+    }
 }
