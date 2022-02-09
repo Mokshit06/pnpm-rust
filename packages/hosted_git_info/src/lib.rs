@@ -4,6 +4,7 @@ use std::{
     ops::Not,
 };
 mod git_host_info;
+pub use crate::git_host::TemplateOpts;
 pub use git_host::GitHost;
 use git_host_info::{BY_DOMAIN, BY_SHORTCUT, GIT_HOSTS};
 use lazy_static::lazy_static;

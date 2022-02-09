@@ -1295,6 +1295,8 @@ dependencies = [
  "strip_bom",
  "tempfile",
  "types",
+ "url",
+ "urlencoding",
 ]
 
 [[package]]
