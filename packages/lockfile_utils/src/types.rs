@@ -10,10 +10,10 @@ pub struct Lockfile {
     #[serde(default)]
     pub importers: HashMap<String, ProjectSnapshot>,
     pub lockfile_version: String,
-    packages: Option<HashMap<String, PackageSnapshot>>,
-    never_built_dependencies: Option<Rc<Vec<String>>>,
-    overrides: Option<HashMap<String, String>>,
-    package_extensions_checksum: Option<String>,
+    pub packages: Option<HashMap<String, PackageSnapshot>>,
+    pub never_built_dependencies: Option<Rc<Vec<String>>>,
+    pub overrides: Option<HashMap<String, String>>,
+    pub package_extensions_checksum: Option<String>,
 }
 
 impl Lockfile {

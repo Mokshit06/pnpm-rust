@@ -762,6 +762,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "itertools",
+ "lazy_static",
  "regex",
  "semver",
  "serde",

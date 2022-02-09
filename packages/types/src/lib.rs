@@ -124,9 +124,9 @@ mod package {
 
     pub struct ProjectManifest {
         pub manifest: BaseManifest,
-        pnpm: Option<PnpmManifest>,
-        private: Option<bool>,
-        resolutions: Option<HashMap<String, String>>,
+        pub pnpm: Option<PnpmManifest>,
+        pub private: Option<bool>,
+        pub resolutions: Option<HashMap<String, String>>,
     }
 
     #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -156,7 +156,7 @@ mod package {
 
 pub use package::*;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum DependencyField {
     OptionalDependencies,
     Dependencies,
