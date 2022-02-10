@@ -161,6 +161,7 @@ fn from_url_internal(git_url: &str) -> Option<GitHost> {
             }
 
             Some(GitHost {
+                domain: String::from("github.com"),
                 r#type: git_host_name.to_string(),
                 user: user.map(|c| c.to_string()),
                 auth,
@@ -326,6 +327,7 @@ mod tests {
         assert_eq!(
             host,
             Some(GitHost {
+                domain: String::from("github.com"),
                 r#type: String::from("github"),
                 user: Some(String::from("npm")),
                 auth: None,

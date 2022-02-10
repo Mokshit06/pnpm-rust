@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq, Clone)]
 pub struct GitHost {
+    pub domain: String,
     pub r#type: String,
     pub user: Option<String>,
     pub auth: Option<String>,
@@ -10,7 +11,8 @@ pub struct GitHost {
 
 pub use templates::TemplateOpts;
 use templates::{
-    file_template, git_template, https_template, shortcut_template, ssh_template, TemplateType,
+    file_template, git_template, https_template, shortcut_template, ssh_template, tarball_template,
+    TemplateType,
 };
 
 impl GitHost {
@@ -22,23 +24,27 @@ impl GitHost {
     }
 
     pub fn ssh(&self, opts: TemplateOpts) -> Option<String> {
-        self.fill(TemplateType::SSHTemplate, opts.merge_with_host(&self))
+        self.fill(TemplateType::SSHTemplate, opts.merge_with_host(self))
     }
 
     pub fn file(&self, opts: TemplateOpts) -> Option<String> {
-        self.fill(TemplateType::FileTemplate, opts.merge_with_host(&self))
+        self.fill(TemplateType::FileTemplate, opts.merge_with_host(self))
     }
 
     pub fn git(&self, opts: TemplateOpts) -> Option<String> {
-        self.fill(TemplateType::GitTemplate, opts.merge_with_host(&self))
+        self.fill(TemplateType::GitTemplate, opts.merge_with_host(self))
+    }
+
+    pub fn tarball(&self, opts: TemplateOpts) -> Option<String> {
+        self.fill(TemplateType::TarballTemplate, opts.merge_with_host(self))
     }
 
     pub fn shortcut(&self, opts: TemplateOpts) -> Option<String> {
-        self.fill(TemplateType::ShortcutTemplate, opts.merge_with_host(&self))
+        self.fill(TemplateType::ShortcutTemplate, opts.merge_with_host(self))
     }
 
     pub fn https(&self, opts: TemplateOpts) -> Option<String> {
-        self.fill(TemplateType::HTTPSType, opts.merge_with_host(&self))
+        self.fill(TemplateType::HTTPSType, opts.merge_with_host(self))
     }
 
     fn fill(&self, template_type: TemplateType, mut opts: TemplateOpts) -> Option<String> {
@@ -57,6 +63,7 @@ impl GitHost {
             TemplateType::GitTemplate => git_template(&self.r#type, &opts),
             TemplateType::HTTPSType => Some(https_template(&self.r#type, &opts)),
             TemplateType::ShortcutTemplate => Some(shortcut_template(&self.r#type, &opts)),
+            TemplateType::TarballTemplate => Some(tarball_template(&self.r#type, &opts)),
         };
 
         match result {
@@ -81,9 +88,10 @@ mod templates {
         GitTemplate,
         HTTPSType,
         ShortcutTemplate,
+        TarballTemplate,
     }
 
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     pub struct TemplateOpts {
         pub path: String,
         pub no_committish: bool,
@@ -104,9 +112,22 @@ mod templates {
                 path: self.path,
                 no_git_plus: self.no_git_plus,
                 no_committish: self.no_committish,
-                domain: self.domain,
+                domain: host.domain.clone(),
                 committish: self.committish.or_else(|| host.committish.clone()),
             }
+        }
+    }
+
+    pub fn tarball_template(git_host_type: &str, opts: &TemplateOpts) -> String {
+        match git_host_type {
+            "github" => format!(
+                "https://codeload.{}/{}/{}/tar.gz/{}",
+                opts.domain,
+                opts.user.as_ref().unwrap(),
+                opts.project.as_ref().unwrap(),
+                maybe_encode(opts.committish.as_deref()).unwrap_or_else(|| "master".to_string())
+            ),
+            _ => format!(""),
         }
     }
 
@@ -189,9 +210,9 @@ mod templates {
         match git_host_type {
             "github" => Some(format!(
                 "git://{}{}/{}/{}.git{}",
-                maybe_join(&[opts.auth.as_deref(), Some("@")]),
-                opts.domain,
-                opts.user.as_ref().unwrap(),
+                &maybe_join(&[opts.auth.as_deref(), Some("@")]),
+                &opts.domain,
+                &opts.user.as_ref().unwrap(),
                 opts.project.as_ref().unwrap(),
                 maybe_join(&[Some("#"), opts.committish.as_deref()])
             )),
@@ -248,7 +269,7 @@ mod templates {
             args.iter()
                 .map(|arg| arg.unwrap())
                 .collect::<Vec<_>>()
-                .join(",")
+                .join("")
         } else {
             String::from("")
         }

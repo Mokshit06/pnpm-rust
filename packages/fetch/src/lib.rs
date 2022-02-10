@@ -1,4 +1,3 @@
-
 use reqwest::{
     header::{HeaderMap, ACCEPT, AUTHORIZATION, USER_AGENT},
     Client,
@@ -6,8 +5,7 @@ use reqwest::{
 
 const PNPM_USER_AGENT: &str = "pnpm"; // or maybe make it `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
 
-const CORGI_DOC: &str =
-    "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
+const CORGI_DOC: &str = "application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8, */*";
 const JSON_DOC: &str = "application/json";
 const MAX_FOLLOWED_REDIRECTS: i32 = 20;
 

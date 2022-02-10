@@ -1,3 +1,4 @@
+use crate::base::Resolution;
 use hosted_git_info::{self, GitHost, TemplateOpts};
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
@@ -9,22 +10,37 @@ pub struct Hosted {
     r#type: String,
     user: String,
     project: String,
-    committish: String,
-    tarball: Option<Box<dyn Fn()>>,
+    pub committish: Option<String>,
+    tarball: Option<Box<dyn Fn(Option<String>) -> Option<String>>>,
 }
 
-impl Hosted {
-    fn tarball(&self) -> Option<String> {
-        todo!()
+impl std::fmt::Debug for Hosted {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Hosted")
+            .field("type", &self.r#type)
+            .field("user", &self.user)
+            .field("project", &self.project)
+            .field("committish", &self.committish)
+            .finish()
     }
 }
 
+impl Hosted {
+    pub fn tarball(&self) -> Option<String> {
+        let committish = self.committish.clone();
+        self.tarball
+            .as_ref()
+            .and_then(|tarball| (tarball)(committish))
+    }
+}
+
+#[derive(Debug)]
 pub struct HostedPackageSpec {
-    fetch_spec: String,
-    hosted: Option<Hosted>,
-    normalized_pref: String,
-    git_committish: Option<String>,
-    git_range: Option<String>,
+    pub fetch_spec: String,
+    pub hosted: Option<Hosted>,
+    pub normalized_pref: String,
+    pub git_committish: Option<String>,
+    pub git_range: Option<String>,
 }
 
 const GIT_PROTOCOLS: [&str; 8] = [
@@ -171,6 +187,7 @@ fn from_hosted_git(hosted: GitHost) -> HostedPackageSpec {
 
     if let Some(git_url) = git_url {
         if access_repository(&git_url) {
+            println!("ACCESS GRANTED");
             fetch_spec = Some(git_url);
         }
     }
@@ -191,7 +208,7 @@ fn from_hosted_git(hosted: GitHost) -> HostedPackageSpec {
                     fetch_spec: https_url,
                     hosted: Some(Hosted {
                         tarball: None,
-                        committish: hosted.committish.unwrap(),
+                        committish: hosted.committish,
                         project: hosted.project,
                         r#type: hosted.r#type,
                         user: hosted.user.unwrap(),
@@ -218,11 +235,16 @@ fn from_hosted_git(hosted: GitHost) -> HostedPackageSpec {
     HostedPackageSpec {
         fetch_spec: fetch_spec.expect("fetch_spec not found"),
         hosted: Some(Hosted {
-            tarball: None,
-            committish: hosted.committish.unwrap(),
-            project: hosted.project,
-            r#type: hosted.r#type,
-            user: hosted.user.unwrap(),
+            committish: hosted.committish.clone(),
+            project: hosted.project.clone(),
+            r#type: hosted.r#type.clone(),
+            user: hosted.user.clone().unwrap(),
+            tarball: Some(Box::new(move |committish: Option<String>| {
+                hosted.tarball(TemplateOpts {
+                    committish,
+                    ..Default::default()
+                })
+            })),
         }),
         normalized_pref: normalized_pref.unwrap(),
         git_range,
@@ -233,9 +255,10 @@ fn from_hosted_git(hosted: GitHost) -> HostedPackageSpec {
 fn set_git_committish(committish: Option<&str>) -> (Option<String>, Option<String>) {
     match committish {
         Some(committish) if committish.len() >= 7 && &committish[0..7] == "semver:" => {
-            (None, Some(String::from(&committish[7..])))
+            (Some(String::from(&committish[7..])), None)
         }
-        Some(_) | None => (None, None),
+        Some(commitish) => (None, Some(String::from(commitish))),
+        None => (None, None),
     }
 }
 

@@ -22,3 +22,8 @@ read_project_manifest = { path = "../read_project_manifest" }
 hosted_git_info = { path = "../hosted_git_info" }
 url = "2.2.2"
 urlencoding = "2.1.0"
+semver = "1.0.4"
+rayon = "1.5.1"
+
+[dev-dependencies]
+pretty_assertions = "1.0.0"

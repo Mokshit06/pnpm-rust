@@ -1,11 +1,9 @@
 use indexmap::IndexMap as HashMap;
 
-
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::RangeBounds;
-
 
 pub type Graph<'a, T> = HashMap<&'a T, Vec<&'a T>>;
 pub type Groups<'a, T> = Vec<Vec<&'a T>>;
@@ -137,7 +135,8 @@ pub fn graph_sequencer<'a, T: Eq + Hash + Clone + Ord + Debug>(
                             } else {
                                 !chunked.contains(*dep)
                             }
-                        }).copied()
+                        })
+                        .copied()
                         .collect::<Vec<_>>();
 
                     if curr_deps.is_empty() {
