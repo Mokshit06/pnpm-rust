@@ -416,4 +416,59 @@ mod tests {
     }
 
     // TODO: implement tests after https://github.com/pnpm/pnpm/blob/main/packages/local-resolver/test/index.ts#L66
+
+    #[test]
+    fn resolve_file_when_lockfile_directory_differs_from_the_packages_dir() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("./pnpm-local-resolver-0.1.1.tgz".to_string()),
+            ResolveLocalOpts {
+                lockfile_dir: Some(
+                    dir_name()
+                        .join("..")
+                        .absolutize()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                project_dir: dir_name_string(),
+            },
+        );
+
+        assert_eq!(resolve_result, Some(ResolveResult {
+            id: "file:nested-package/pnpm-local-resolver-0.1.1.tgz".to_string(),
+            latest: None,
+            manifest: None,
+            normalized_pref: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            resolution: Resolution::TarballResolution {
+                integrity: Some("sha512-UHd2zKRT/w70KKzFlj4qcT81A1Q0H7NM9uKxLzIZ/VZqJXzt5Hnnp2PYPb5Ezq/hAamoYKIn5g7fuv69kP258w==".to_string()),
+                registry: None,
+                tarball: "file:nested-package/pnpm-local-resolver-0.1.1.tgz".to_string(),
+            },
+            resolved_via: ResolvedVia::LocalFilesystem,
+        }));
+    }
+
+    #[test]
+    fn resolve_tarball_specified_with_file_protocol() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("file:./pnpm-local-resolver-0.1.1.tgz".to_string()),
+            ResolveLocalOpts {
+                lockfile_dir: None,
+                project_dir: dir_name_string(),
+            },
+        );
+
+        assert_eq!(resolve_result, Some(ResolveResult {
+            id: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            latest: None,
+            manifest: None,
+            normalized_pref: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            resolution: Resolution::TarballResolution {
+                integrity: Some("sha512-UHd2zKRT/w70KKzFlj4qcT81A1Q0H7NM9uKxLzIZ/VZqJXzt5Hnnp2PYPb5Ezq/hAamoYKIn5g7fuv69kP258w==".to_string()),
+                registry: None,
+                tarball: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            },
+            resolved_via: ResolvedVia::LocalFilesystem,
+        }));
+    }
 }

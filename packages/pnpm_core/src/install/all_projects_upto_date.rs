@@ -1,8 +1,9 @@
 use lockfile_utils::satisfies_package_manifest::satisfies_package_manifest;
 use lockfile_utils::types::{Lockfile, ProjectSnapshot};
+use rayon::prelude::*;
 use resolvers::base::WorkspacePackages;
 use std::collections::HashMap;
-use types::{BaseManifest, ProjectManifest};
+use types::{BaseManifest, DependencyField, ProjectManifest};
 
 pub struct ProjectOptions {
     id: String,
@@ -37,7 +38,6 @@ fn get_workspace_packages_by_directory<'a>(
 
 pub fn all_projects_are_up_to_date<'a>(projects: &[ProjectOptions], opts: Options<'a>) -> bool {
     let _manifestsByDir = get_workspace_packages_by_directory(&opts.workspace_packages);
-
     projects.iter().all(|project| {
         let importer = opts
             .wanted_lockfile
@@ -56,27 +56,26 @@ pub fn all_projects_are_up_to_date<'a>(projects: &[ProjectOptions], opts: Option
 }
 
 fn linked_packages_are_up_to_date() -> bool {
-    true
+    for dep_field in DependencyField::iterator() {
+        // let lockfile_deps =
+    }
+    todo!();
 }
 
 fn has_local_tarball_deps_in_root(importer: &ProjectSnapshot) -> bool {
-    for deps in [
+    [
         &importer.dependencies,
         &importer.dev_dependencies,
         &importer.optional_dependencies,
-    ] {
-        if deps
-            .as_ref()
+    ]
+    .par_iter()
+    .any(|deps| {
+        deps.as_ref()
             .unwrap_or(&HashMap::new())
-            .iter()
+            .par_iter()
             .map(|(_, v)| v)
             .any(|x| ref_is_local_tarball(x.as_str()))
-        {
-            return true;
-        }
-    }
-
-    false
+    })
 }
 
 fn ref_is_local_tarball(ref_str: &str) -> bool {

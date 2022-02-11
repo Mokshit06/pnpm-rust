@@ -3,7 +3,6 @@ use indexmap::IndexMap as HashMap;
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::RangeBounds;
 
 pub type Graph<'a, T> = HashMap<&'a T, Vec<&'a T>>;
 pub type Groups<'a, T> = Vec<Vec<&'a T>>;
@@ -75,9 +74,9 @@ where {
     cycles
 }
 
-pub fn graph_sequencer<'a, T: Eq + Hash + Clone + Ord + Debug>(
-    opts: SequencerOptions<'a, T>,
-) -> SequencerResult<'a, T> {
+pub fn graph_sequencer<T: Eq + Hash + Clone + Ord + Debug>(
+    opts: SequencerOptions<T>,
+) -> SequencerResult<T> {
     let SequencerOptions { graph, groups } = &opts;
     let graph_items = graph.iter().map(|(&k, _)| k).collect::<Vec<_>>();
 

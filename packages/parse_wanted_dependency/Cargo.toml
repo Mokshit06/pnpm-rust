@@ -1,12 +1,9 @@
 [package]
-name = "pnpm-core"
+name = "parse_wanted_dependency"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-types = { path = "../types" }
-lockfile_utils = { path = "../lockfile_utils" }
-resolvers = { path = "../resolvers" }
-rayon = "1.5.1"
+validate_npm_package_name = { path = "../validate_npm_package_name" }
