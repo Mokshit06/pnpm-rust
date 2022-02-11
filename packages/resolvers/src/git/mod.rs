@@ -80,7 +80,6 @@ fn is_ssh(git_spec: &str) -> bool {
 }
 
 fn get_repo_refs(repo: &str, pref: Option<&str>) -> Result<HashMap<String, String>> {
-    dbg!(&repo, &pref);
     let mut git_args = vec![repo];
     if !matches!(pref, Some("HEAD")) {
         git_args.insert(0, "--refs")
@@ -89,7 +88,6 @@ fn get_repo_refs(repo: &str, pref: Option<&str>) -> Result<HashMap<String, Strin
         git_args.push(pref);
     }
 
-    dbg!(&git_args, &repo);
     let result = Command::new("git")
         .arg("ls-remote")
         .args(git_args)
@@ -120,7 +118,6 @@ fn resolve_ref(repo: &str, pref: &str, git_range: Option<&str>) -> Result<String
     if RE.is_match(pref) {
         Ok(pref.to_string())
     } else {
-        dbg!(&git_range.as_ref(), &pref);
         let refs = get_repo_refs(
             repo,
             match git_range {
@@ -129,7 +126,6 @@ fn resolve_ref(repo: &str, pref: &str, git_range: Option<&str>) -> Result<String
             },
         )?;
 
-        dbg!(&refs);
         resolve_ref_from_refs(refs, repo, pref, git_range)
     }
 }

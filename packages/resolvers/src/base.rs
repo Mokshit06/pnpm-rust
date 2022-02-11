@@ -6,6 +6,23 @@ pub struct WorkspacePackage<'a> {
     pub manifest: &'a BaseManifest,
 }
 
+pub struct WantedDependency {
+    pub injected: Option<bool>,
+    pub pref: Option<String>,
+    pub alias: Option<String>,
+}
+
+pub struct ResolveOptions<'a> {
+    always_try_workspace_packages: Option<bool>,
+    default_tag: Option<String>,
+    pub project_dir: String,
+    pub lockfile_dir: String,
+    //   preferredVersions: PreferredVersions
+    prefer_workspace_packages: Option<bool>,
+    registry: String,
+    workspace_packages: Option<WorkspacePackages<'a>>,
+}
+
 pub type WorkspacePackages<'a> = HashMap<String, HashMap<String, WorkspacePackage<'a>>>;
 
 /// This type looks almost exactly the same as `LockfileResolution`

@@ -1,4 +1,3 @@
-use crate::base::Resolution;
 use hosted_git_info::{self, GitHost, TemplateOpts};
 use lazy_static::lazy_static;
 use regex::{Regex, RegexBuilder};
@@ -187,7 +186,6 @@ fn from_hosted_git(hosted: GitHost) -> HostedPackageSpec {
 
     if let Some(git_url) = git_url {
         if access_repository(&git_url) {
-            println!("ACCESS GRANTED");
             fetch_spec = Some(git_url);
         }
     }
@@ -262,6 +260,8 @@ fn set_git_committish(committish: Option<&str>) -> (Option<String>, Option<Strin
     }
 }
 
+// this function is currently the bottleneck
+// it takes about 0.6s to startup git
 fn access_repository(repository: &str) -> bool {
     Command::new("git")
         .args(["ls-remote", "--exit-code", repository, "HEAD"])
@@ -276,37 +276,37 @@ mod tests {
     #[test]
     fn right_colon_is_escaped() {
         let tests = [
-            [
+            (
                 "ssh://username:password@example.com:repo.git",
                 "ssh://username:password@example.com/repo.git",
-            ],
-            [
+            ),
+            (
                 "ssh://username:password@example.com:repo/@foo.git",
                 "ssh://username:password@example.com/repo/@foo.git",
-            ],
-            [
+            ),
+            (
                 "ssh://username:password@example.com:22/repo/@foo.git",
                 "ssh://username:password@example.com:22/repo/@foo.git",
-            ],
-            [
+            ),
+            (
                 "ssh://username:password@example.com:22repo/@foo.git",
                 "ssh://username:password@example.com/22repo/@foo.git",
-            ],
-            [
+            ),
+            (
                 "git+ssh://username:password@example.com:repo.git",
                 "ssh://username:password@example.com/repo.git",
-            ],
-            [
+            ),
+            (
                 "git+ssh://username:password@example.com:repo/@foo.git",
                 "ssh://username:password@example.com/repo/@foo.git",
-            ],
-            [
+            ),
+            (
                 "git+ssh://username:password@example.com:22/repo/@foo.git",
                 "ssh://username:password@example.com:22/repo/@foo.git",
-            ],
+            ),
         ];
 
-        for [input, expected] in tests {
+        for (input, expected) in tests {
             let parsed = parse_pref(input).unwrap();
             assert_eq!(parsed.fetch_spec, expected, "error in {}", input);
         }

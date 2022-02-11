@@ -1,14 +1,13 @@
 use crate::base::{Resolution, ResolveResult, ResolvedVia};
-use read_project_manifest::read_project_manifest_only;
-
 use lazy_static::lazy_static;
+use pathdiff;
+use read_project_manifest::read_project_manifest_only;
 use regex::{Regex, RegexBuilder};
-use relative_path::RelativePath;
-use ssri;
-use ssri::Integrity;
+use ssri::{Algorithm, IntegrityOpts};
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
 pub enum PackageType {
     Directory,
@@ -24,8 +23,8 @@ pub struct LocalPackageSpec {
 }
 
 pub struct WantedLocalDependency {
-    pref: String,
-    injected: Option<bool>,
+    pub pref: String,
+    pub injected: Option<bool>,
 }
 
 impl WantedLocalDependency {
@@ -38,7 +37,7 @@ impl WantedLocalDependency {
 }
 
 pub struct ResolveLocalOpts {
-    pub lockfile_dir: String,
+    pub lockfile_dir: Option<String>,
     pub project_dir: String,
 }
 
@@ -46,7 +45,11 @@ pub fn resolve_local(
     wanted_dependency: WantedLocalDependency,
     opts: ResolveLocalOpts,
 ) -> Option<ResolveResult> {
-    let spec = parse_pref(&wanted_dependency, &opts.project_dir, &opts.lockfile_dir);
+    let spec = parse_pref(
+        &wanted_dependency,
+        &opts.project_dir,
+        opts.lockfile_dir.as_ref().unwrap_or(&opts.project_dir),
+    );
 
     spec.map(|spec| {
         if let PackageType::File = spec.r#type {
@@ -83,7 +86,11 @@ pub fn resolve_local(
 }
 
 fn get_file_integrity(fetch_spec: &str) -> String {
-    Integrity::from(fs::read(fetch_spec).unwrap()).to_string()
+    IntegrityOpts::new()
+        .algorithm(Algorithm::Sha512)
+        .chain(fs::read(fetch_spec).unwrap())
+        .result()
+        .to_string()
 }
 
 // i'm not sure why most of these are regex's
@@ -165,15 +172,15 @@ fn from_local(
     let pref_without_backslash = pref.replace("\\", "/");
     let first_match = RE_1.replace(&pref_without_backslash, "$2");
     let spec = RE_2.replace(&first_match, "$2");
-    let protocol = if matches!(package_type, PackageType::Directory) && injected.unwrap_or(false) {
+    let protocol = if matches!(package_type, PackageType::Directory) && !injected.unwrap_or(false) {
         "link:"
     } else {
         "file:"
     };
-    // this is needed for windows and for file:~/foo/bar
     let fetch_spec: String;
     let normalized_pref: String;
     if RE_3.is_match(&spec) {
+        // this is needed for windows and for file:~/foo/bar
         fetch_spec = dirs::home_dir()
             .expect("home_dir not found")
             .join(&spec[2..])
@@ -183,25 +190,28 @@ fn from_local(
     } else {
         fetch_spec = Path::new(project_dir)
             .join(&*spec)
+            .canonicalize()
+            .unwrap()
             .to_string_lossy()
             .to_string();
+
         normalized_pref = if Path::new(&*spec).is_absolute() {
             format!("{}{}", protocol, spec)
         } else {
             format!(
                 "{}{}",
                 protocol,
-                RelativePath::new(project_dir)
-                    .to_path(&fetch_spec)
-                    .to_string_lossy()
+                relative_path(project_dir, &fetch_spec).to_string_lossy()
             )
         }
     };
 
     let dependency_path = if injected.unwrap_or(false) {
-        RelativePath::new(lockfile_dir).to_path(&fetch_spec)
+        relative_path(lockfile_dir, &fetch_spec)
+            .to_string_lossy()
+            .to_string()
     } else {
-        std::env::current_dir().unwrap().join(&fetch_spec)
+        fetch_spec.clone()
     };
     let path_to_join = if !injected.unwrap_or(false)
         && (matches!(package_type, PackageType::Directory) || project_dir == lockfile_dir)
@@ -213,18 +223,197 @@ fn from_local(
     let id = format!(
         "{}{}",
         protocol,
-        RelativePath::new(path_to_join)
-            .to_path(&fetch_spec)
-            .canonicalize()
-            .expect("Couldn't resolve path")
-            .to_string_lossy()
+        relative_path(path_to_join, &fetch_spec).to_string_lossy()
     );
 
     LocalPackageSpec {
         id,
         fetch_spec,
-        dependency_path: dependency_path.to_string_lossy().to_string(),
+        dependency_path,
         normalized_pref,
         r#type: package_type,
     }
+}
+
+// reverse the order of args
+fn relative_path<P: AsRef<Path>, S: AsRef<Path>>(base: P, path: S) -> PathBuf {
+    pathdiff::diff_paths(path, base).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assert_matches::assert_matches;
+    use path_absolutize::*;
+    use pretty_assertions::assert_eq;
+    use types::BaseManifest;
+
+    fn dir_name() -> PathBuf {
+        std::env::current_dir()
+            .unwrap()
+            .join("fixtures")
+            .join("package")
+            .join("nested-package")
+    }
+
+    fn dir_name_string() -> String {
+        dir_name().to_string_lossy().to_string()
+    }
+
+    #[test]
+    fn resolve_directory() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("..".to_string()),
+            ResolveLocalOpts {
+                lockfile_dir: None,
+                project_dir: dir_name_string(),
+            },
+        );
+
+        assert_matches!(
+            resolve_result,
+            Some(ResolveResult {
+                id,
+                normalized_pref,
+                manifest: Some(BaseManifest { name: Some(name), .. }),
+                resolution: Resolution::DirectoryResolution { directory, r#type },
+                ..
+            }) => {
+                assert_eq!(id, "link:..");
+                assert_eq!(normalized_pref, "link:..");
+                assert_eq!(name, "@pnpm/local-resolver");
+                assert_eq!(directory, dir_name().join("..").absolutize().unwrap().to_string_lossy());
+                assert_eq!(r#type, "directory");
+            }
+        )
+    }
+
+    #[test]
+    fn resolve_injected_directory() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency {
+                injected: Some(true),
+                pref: "..".to_string(),
+            },
+            ResolveLocalOpts {
+                lockfile_dir: None,
+                project_dir: dir_name_string(),
+            },
+        );
+
+        assert_matches!(resolve_result, Some(ResolveResult {
+            id,
+            normalized_pref,
+            manifest: Some(BaseManifest { name: Some(name), .. }),
+            resolution: Resolution::DirectoryResolution { directory, r#type },
+            ..
+        }) => {
+            assert_eq!(id, "file:..");
+            assert_eq!(normalized_pref, "file:..");
+            assert_eq!(name, "@pnpm/local-resolver");
+            assert_eq!(directory, "..");
+            assert_eq!(r#type, "directory");
+        });
+    }
+
+    #[test]
+    fn resolve_workspace_directory() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("workspace:..".to_string()),
+            ResolveLocalOpts {
+                project_dir: dir_name_string(),
+                lockfile_dir: None,
+            },
+        );
+
+        assert_matches!(resolve_result, Some(ResolveResult {
+            id,
+            normalized_pref,
+            manifest: Some(BaseManifest { name: Some(name), .. }),
+            resolution: Resolution::DirectoryResolution { directory, r#type },
+            ..
+        }) => {
+            assert_eq!(id, "link:..");
+            assert_eq!(normalized_pref, "link:..");
+            assert_eq!(name, "@pnpm/local-resolver");
+            assert_eq!(directory, dir_name().join("..").absolutize().unwrap().to_string_lossy());
+            assert_eq!(r#type,"directory");
+        });
+    }
+
+    #[test]
+    fn resolve_directory_specified_using_the_file_protocol() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("file:..".to_string()),
+            ResolveLocalOpts {
+                project_dir: dir_name_string(),
+                lockfile_dir: None,
+            },
+        );
+
+        assert_matches!(resolve_result, Some(ResolveResult {
+            id,
+            normalized_pref,
+            manifest: Some(BaseManifest { name: Some(name), .. }),
+            resolution: Resolution::DirectoryResolution { directory, r#type },
+            ..
+        }) => {
+            assert_eq!(id, "link:..");
+            assert_eq!(normalized_pref, "link:..");
+            assert_eq!(name, "@pnpm/local-resolver");
+            assert_eq!(directory, dir_name().join("..").absolutize().unwrap().to_string_lossy());
+            assert_eq!(r#type,"directory");
+        });
+    }
+
+    #[test]
+    fn resolve_directoty_specified_using_the_link_protocol() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("link:..".to_string()),
+            ResolveLocalOpts {
+                project_dir: dir_name_string(),
+                lockfile_dir: None,
+            },
+        );
+
+        assert_matches!(resolve_result, Some(ResolveResult {
+            id,
+            normalized_pref,
+            manifest: Some(BaseManifest { name: Some(name), .. }),
+            resolution: Resolution::DirectoryResolution { directory, r#type },
+            ..
+        }) => {
+            assert_eq!(id, "link:..");
+            assert_eq!(normalized_pref, "link:..");
+            assert_eq!(name, "@pnpm/local-resolver");
+            assert_eq!(directory, dir_name().join("..").absolutize().unwrap().to_string_lossy());
+            assert_eq!(r#type,"directory");
+        });
+    }
+
+    #[test]
+    fn resolve_file() {
+        let resolve_result = resolve_local(
+            WantedLocalDependency::new("./pnpm-local-resolver-0.1.1.tgz".to_string()),
+            ResolveLocalOpts {
+                lockfile_dir: None,
+                project_dir: dir_name_string(),
+            },
+        );
+
+        assert_eq!(resolve_result, Some(ResolveResult {
+            id: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            latest: None,
+            manifest: None,
+            normalized_pref: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            resolution: Resolution::TarballResolution {
+                integrity: Some("sha512-UHd2zKRT/w70KKzFlj4qcT81A1Q0H7NM9uKxLzIZ/VZqJXzt5Hnnp2PYPb5Ezq/hAamoYKIn5g7fuv69kP258w==".to_string()),
+                registry: None,
+                tarball: "file:pnpm-local-resolver-0.1.1.tgz".to_string(),
+            },
+            resolved_via: ResolvedVia::LocalFilesystem,
+        }));
+    }
+
+    // TODO: implement tests after https://github.com/pnpm/pnpm/blob/main/packages/local-resolver/test/index.ts#L66
 }
