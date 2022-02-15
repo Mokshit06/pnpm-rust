@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 use std::{fs, thread};
+use store_controller_types::StoreController;
 use store_path::store_path;
 
 pub struct CreateStoreControllerOptions {
@@ -20,14 +21,58 @@ pub struct CreateStoreControllerOptions {
     use_store_server: Option<bool>,
 }
 
-pub struct StoreController;
-
 pub struct StoreEntry {
     ctrl: StoreController,
     dir: String,
 }
 
-impl StoreEntry {}
+impl StoreEntry {
+    pub fn create_or_connect_store_controller(opts: CreateStoreControllerOptions) -> Result<Self> {
+        let store_dir = store_path(
+            &opts.workspace_dir.unwrap_or(opts.dir),
+            opts.store_dir.as_deref(),
+        )?;
+        let connection_info_dir = server_connection_info_dir(&store_dir);
+        let store_dir = store_dir.to_string_lossy().to_string();
+        let server_json_path = connection_info_dir.join("server.json");
+        let server_json = try_load_server_json(&server_json_path.to_string_lossy(), false)?;
+
+        if let Some(server_info) = server_json {
+            todo!("implement @pnpm/cli-meta");
+            if server_info.pnpm_version != "" {
+                warn!("The store server runs on pnpm v{}. It is recommended to connect with the same version (current is v{})", server_info.pnpm_version, "");
+            }
+            info!("A store server is running. All store manipulations are delegated to it.");
+
+            return Ok(StoreEntry {
+                ctrl: todo!("instantiate store controller"),
+                dir: store_dir,
+            });
+        }
+
+        if opts.use_running_store_server.unwrap_or(false) {
+            bail!("NO_STORE_SERVER: No store server is running.")
+        }
+
+        if opts.use_store_server.unwrap_or(false) {
+            // spawn a daemon thread
+            run_server_in_background(&store_dir);
+            let server_json =
+                try_load_server_json(&server_json_path.to_string_lossy(), true)?.unwrap();
+            info!("A store server has been started. To stop it, use `pnpm server stop`");
+
+            return Ok(StoreEntry {
+                ctrl: todo!("instantiate store controller"),
+                dir: store_dir,
+            });
+        }
+
+        Ok(create_new_store_controller(
+            CreateNewStoreControllerOptions {},
+            &store_dir,
+        ))
+    }
+}
 
 pub fn create_or_connect_store_controller_cached(
     store_control_cache: &mut HashMap<String, StoreEntry>,
@@ -38,57 +83,16 @@ pub fn create_or_connect_store_controller_cached(
     Ok(store_control_cache
         .entry(store_dir.to_string_lossy().to_string())
         .or_insert_with(|| StoreEntry {
-            ctrl: StoreController,
+            ctrl: todo!("instantiate store controller"),
             dir: String::from(""),
         }))
 }
 
-pub fn create_or_connect_store_controller(
-    opts: CreateStoreControllerOptions,
-) -> Result<StoreEntry> {
-    let store_dir = store_path(
-        &opts.workspace_dir.unwrap_or(opts.dir),
-        opts.store_dir.as_deref(),
-    )?;
-    let connection_info_dir = server_connection_info_dir(&store_dir);
-    let store_dir = store_dir.to_string_lossy().to_string();
-    let server_json_path = connection_info_dir.join("server.json");
-    let server_json = try_load_server_json(&server_json_path.to_string_lossy(), false)?;
+// pub fn create_or_connect_store_controller(
+//     opts: CreateStoreControllerOptions,
+// ) -> Result<StoreEntry> {
 
-    if let Some(server_info) = server_json {
-        todo!("implement @pnpm/cli-meta");
-        if server_info.pnpm_version != "" {
-            warn!("The store server runs on pnpm v{}. It is recommended to connect with the same version (current is v{})", server_info.pnpm_version, "");
-        }
-        info!("A store server is running. All store manipulations are delegated to it.");
-
-        return Ok(StoreEntry {
-            ctrl: StoreController,
-            dir: store_dir,
-        });
-    }
-
-    if opts.use_running_store_server.unwrap_or(false) {
-        bail!("NO_STORE_SERVER: No store server is running.")
-    }
-
-    if opts.use_store_server.unwrap_or(false) {
-        // spawn a daemon thread
-        run_server_in_background(&store_dir);
-        let server_json = try_load_server_json(&server_json_path.to_string_lossy(), true)?.unwrap();
-        info!("A store server has been started. To stop it, use `pnpm server stop`");
-
-        return Ok(StoreEntry {
-            ctrl: StoreController,
-            dir: store_dir,
-        });
-    }
-
-    Ok(create_new_store_controller(
-        CreateNewStoreControllerOptions {},
-        &store_dir,
-    ))
-}
+// }
 
 fn run_server_in_background(store_dir: &str) {
     thread::spawn(|| {});

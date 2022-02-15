@@ -17,10 +17,19 @@ pub struct ResolveOptions<'a> {
     default_tag: Option<String>,
     pub project_dir: String,
     pub lockfile_dir: String,
-    //   preferredVersions: PreferredVersions
+    preferred_versions: PreferredVersions,
     prefer_workspace_packages: Option<bool>,
     registry: String,
     workspace_packages: Option<WorkspacePackages<'a>>,
+}
+
+pub type PreferredVersions = HashMap<String, VersionSelectors>;
+pub type VersionSelectors = HashMap<String, Version>;
+
+pub enum Version {
+    Version,
+    Range,
+    Tag,
 }
 
 pub type WorkspacePackages<'a> = HashMap<String, HashMap<String, WorkspacePackage<'a>>>;

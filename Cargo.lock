@@ -765,6 +765,7 @@ dependencies = [
  "constants",
  "itertools",
  "lazy_static",
+ "rayon",
  "regex",
  "semver",
  "serde",
@@ -1065,6 +1066,7 @@ dependencies = [
  "cli_utils",
  "find_workspace_packages",
  "project",
+ "rayon",
  "read_project_manifest",
  "relative-path",
  "sort_packages",
@@ -1515,7 +1517,15 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "store_controller_types",
  "store_path",
+]
+
+[[package]]
+name = "store_controller_types"
+version = "0.1.0"
+dependencies = [
+ "resolvers",
 ]
 
 [[package]]

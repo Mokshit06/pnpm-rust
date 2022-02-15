@@ -1,11 +1,12 @@
 use crate::recursive::{recursive, CommandFullName, RecursiveOptions};
-use anyhow::Result;
+use anyhow::{bail, Result};
 use cli_utils::{
     package_is_installable::PackageIsInstallableOpts,
     read_project_manifest::try_read_project_manifest,
 };
 use find_workspace_packages::{slice_of_workspace_packages_to_map, ManifestOnlyPackage};
 use project::{Graph, Project, ProjectsGraph};
+use rayon::prelude::*;
 use relative_path::RelativePath;
 use sort_packages::sequence_graph;
 use std::collections::HashMap;
@@ -43,14 +44,14 @@ pub struct InstallDepsOpts<'a> {
 pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Result<()> {
     if opts.workspace.unwrap_or(false) {
         if opts.latest.unwrap_or(false) {
-            panic!("BAD_OPTIONS: Cannot use --latest with --workspace simultaneously");
+            bail!("BAD_OPTIONS: Cannot use --latest with --workspace simultaneously");
         }
         if opts.workspace.is_none() {
-            panic!("WORKSPACE_OPTION_OUTSIDE_WORKSPACE: --workspace can only be used inside a workspace")
+            bail!("WORKSPACE_OPTION_OUTSIDE_WORKSPACE: --workspace can only be used inside a workspace")
         }
         if !opts.link_workspace_packages && !opts.save_workspace_protocol.unwrap_or(false) {
             if let Some(false) = opts.raw_local_config.save_workspace_protocol {
-                panic!("BAD_OPTIONS:This workspace has link-workspace-packages turned off, \
+                bail!("BAD_OPTIONS:This workspace has link-workspace-packages turned off, \
                 so dependencies are linked from the workspace only when the workspace protocol is used. \
                 Either set link-workspace-packages to true or don\'t use the --no-save-workspace-protocol option \
                 when running add/update with the --workspace option")
@@ -91,9 +92,9 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Resul
                     } else {
                         sequenced_graph
                             .cycles
-                            .iter()
+                            .par_iter()
                             .map(|deps| {
-                                deps.iter()
+                                deps.par_iter()
                                     .map(|&x| x.clone())
                                     .collect::<Vec<_>>()
                                     .join("-")
@@ -123,27 +124,29 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Resul
             }
         }
 
-        let _params = params
-            .iter()
+        // `pnpm install ""` is going to be just `pnpm install`
+        let params = params
+            .par_iter()
             .filter(|param| !param.is_empty())
             .copied()
             .collect::<Vec<_>>();
-        // let dir = opts.dir;
+        let dir = &opts.dir;
         // .unwrap_or_else(|| {
         //     std::env::current_dir()
         //         .unwrap()
         //         .to_string_lossy()
         //         .to_string()
         // });
-        let mut packages = vec![];
-        for project in all_projects.iter() {
-            packages.push(ManifestOnlyPackage {
+        let packages = all_projects
+            .iter()
+            .map(|project| ManifestOnlyPackage {
                 manifest: &project.manifest,
             })
-        }
-        let _workspace_packages = opts
-            .workspace_dir
-            .map(|_workspace_dir| slice_of_workspace_packages_to_map(&packages));
+            .collect::<Vec<_>>();
+        let _workspace_packages = match opts.workspace_dir {
+            Some(_) => Some(slice_of_workspace_packages_to_map(&packages)),
+            None => None,
+        };
 
         let project_manifest = try_read_project_manifest(
             &opts.dir,
@@ -153,19 +156,21 @@ pub fn install_deps<'a>(mut opts: InstallDepsOpts<'a>, params: &[&str]) -> Resul
             },
         )?;
         let temp;
-        let _manifest = match &project_manifest.manifest {
+        let manifest = match &project_manifest.manifest {
             Some(manifest) => manifest,
             None => {
                 if opts.update.unwrap_or(false) {
-                    panic!("NO_IMPORTER_MANIFEST: No package.json found");
+                    bail!("NO_IMPORTER_MANIFEST: No package.json found");
                 }
                 temp = Default::default();
                 &temp
             }
         };
-        let _write_project_manifest = |updated_manifest: &BaseManifest, force: bool| {
+        let write_project_manifest = |updated_manifest: &BaseManifest, force: bool| {
             project_manifest.write_project_manifest(updated_manifest, force)
         };
+
+        let store = create_or_connect_store_controller();
     }
 
     Ok(())

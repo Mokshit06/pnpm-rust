@@ -15,6 +15,7 @@ project = { path = "./packages/project" }
 read_project_manifest = { path = "./packages/read_project_manifest" }
 cli_utils = { path = "./packages/cli_utils" }
 anyhow = "1.0.53"
+rayon = "1.5.1"
 
 [workspace]
 members = [

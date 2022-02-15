@@ -46,12 +46,16 @@ pub struct ReadResult {
 
 // TODO: change this to just have `lockfile` and `package_snapshot` fields
 // and serde flatten it
+//
+// Order of the keys in this struct matters
+// this order is based on the `sortLockfileKeys` fn
+// https://github.com/pnpm/pnpm/blob/main/packages/lockfile-file/src/sortLockfileKeys.ts
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LockfileFile {
+    pub lockfile_version: String,
     #[serde(default)]
     pub importers: HashMap<String, ProjectSnapshot>,
-    pub lockfile_version: String,
     pub packages: Option<HashMap<String, PackageSnapshot>>,
     pub never_built_dependencies: Option<Rc<Vec<String>>>,
     pub overrides: Option<HashMap<String, String>>,
