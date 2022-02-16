@@ -7,17 +7,17 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "3.0.13", features = ["derive"] }
-types = { path = "./packages/types" }
-find_workspace_packages = { path = "./packages/find_workspace_packages" }
+types = { path = "./crates/types" }
+find_workspace_packages = { path = "./crates/find_workspace_packages" }
 relative-path = "1.6.0"
-sort_packages = { path = "./packages/sort_packages" }
-project = { path = "./packages/project" }
-read_project_manifest = { path = "./packages/read_project_manifest" }
-cli_utils = { path = "./packages/cli_utils" }
+sort_packages = { path = "./crates/sort_packages" }
+project = { path = "./crates/project" }
+read_project_manifest = { path = "./crates/read_project_manifest" }
+cli_utils = { path = "./crates/cli_utils" }
 anyhow = "1.0.53"
 rayon = "1.5.1"
 
 [workspace]
 members = [
-    "packages/*"
+    "crates/*"
 ]

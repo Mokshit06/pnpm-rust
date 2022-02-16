@@ -3,15 +3,35 @@ mod server_connection_info_dir;
 
 use anyhow::{bail, Result};
 use create_new_store_controller::{create_new_store_controller, CreateNewStoreControllerOptions};
+use lazy_static::lazy_static;
 use log::{info, warn};
+use reqwest::blocking::Client;
+use resolvers::base::{PreferredVersions, Resolution, WantedDependency, WorkspacePackages};
 use serde::Deserialize;
 use server_connection_info_dir::server_connection_info_dir;
 use std::collections::HashMap;
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 use std::{fs, thread};
-use store_controller_types::StoreController;
 use store_path::store_path;
+
+fn run_server_in_background(store_dir: &str) {
+    thread::spawn(|| {});
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ConnectionOptions {
+    remote_prefix: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServerInfo {
+    connection_options: ConnectionOptions,
+    pid: i32,
+    pnpm_version: String,
+}
 
 pub struct CreateStoreControllerOptions {
     dir: String,
@@ -26,8 +46,21 @@ pub struct StoreEntry {
     dir: String,
 }
 
-impl StoreEntry {
-    pub fn create_or_connect_store_controller(opts: CreateStoreControllerOptions) -> Result<Self> {
+impl StoreEntry {}
+
+pub struct StoreController {
+    request_package: RequestPackage,
+    fetch_package: (),
+    import_package: (),
+}
+
+pub struct CreateStoreControllerOpts {
+    remote_prefix: String,
+    concurrency: Option<i32>,
+}
+
+impl StoreController {
+    pub fn create_or_connect(opts: CreateStoreControllerOptions) -> Result<StoreEntry> {
         let store_dir = store_path(
             &opts.workspace_dir.unwrap_or(opts.dir),
             opts.store_dir.as_deref(),
@@ -72,44 +105,57 @@ impl StoreEntry {
             &store_dir,
         ))
     }
+
+    pub fn create_or_connect_cached(
+        store_control_cache: &mut HashMap<String, StoreEntry>,
+        opts: CreateStoreControllerOptions,
+    ) -> Result<&StoreEntry> {
+        let store_dir = store_path(&opts.dir, opts.store_dir.as_deref())?;
+
+        Ok(store_control_cache
+            .entry(store_dir.to_string_lossy().to_string())
+            .or_insert_with(|| StoreEntry {
+                ctrl: todo!("instantiate store controller"),
+                dir: String::from(""),
+            }))
+    }
+
+    pub fn connect(options: CreateStoreControllerOpts) -> Self {
+        todo!()
+    }
+
+    pub fn close() {}
+
+    pub fn prune() {}
+
+    pub fn upload(built_pkg_location: &str, opts: UploadOptions) {}
 }
 
-pub fn create_or_connect_store_controller_cached(
-    store_control_cache: &mut HashMap<String, StoreEntry>,
-    opts: CreateStoreControllerOptions,
-) -> Result<&StoreEntry> {
-    let store_dir = store_path(&opts.dir, opts.store_dir.as_deref())?;
+fn fetch(url: &str, body: HashMap<&str, &str>) -> Result<HashMap<String, String>> {
+    lazy_static! {
+        #[allow(clippy::non_upper_case_globals)]
+        static ref client: Client = Client::new();
+    }
 
-    Ok(store_control_cache
-        .entry(store_dir.to_string_lossy().to_string())
-        .or_insert_with(|| StoreEntry {
-            ctrl: todo!("instantiate store controller"),
-            dir: String::from(""),
-        }))
-}
+    let url = if url.starts_with("https://unix:") {
+        url.replace("http://unix:", "unix:")
+    } else {
+        url.to_string()
+    };
 
-// pub fn create_or_connect_store_controller(
-//     opts: CreateStoreControllerOptions,
-// ) -> Result<StoreEntry> {
+    let response = client
+        .post(url)
+        .json(&body)
+        .send()?
+        // .await?
+        .json::<HashMap<String, String>>()?;
+    // .await?;
 
-// }
+    if let Some(error) = response.get("error") {
+        bail!("{}", error)
+    }
 
-fn run_server_in_background(store_dir: &str) {
-    thread::spawn(|| {});
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ConnectionOptions {
-    remote_prefix: String,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ServerInfo {
-    connection_options: ConnectionOptions,
-    pid: i32,
-    pnpm_version: String,
+    Ok(response)
 }
 
 fn try_load_server_json(
@@ -161,4 +207,43 @@ fn try_load_server_json(
             bail!("server.json was modified by a third party")
         }
     }
+}
+
+pub struct UploadOptions {
+    files_index_file: String,
+    engine: String,
+}
+
+pub struct RequestPackage {}
+
+impl RequestPackage {
+    pub fn request(
+        wanted_dependency: WantedDependency,
+        optional: Option<bool>,
+        options: RequestPackageOptions,
+    ) {
+    }
+}
+
+pub struct RequestPackageOptions<'a> {
+    always_try_workspace_packages: Option<bool>,
+    current_pkg: Option<Package>,
+    default_tag: Option<String>,
+    download_priority: i32,
+    project_dir: String,
+    lockfile_dir: String,
+    preferred_versions: PreferredVersions,
+    prefer_workspace_packages: Option<bool>,
+    registry: String,
+    side_effects_cache: Option<bool>,
+    skip_fetch: Option<bool>,
+    update: Option<bool>,
+    workspace_packages: Option<WorkspacePackages<'a>>,
+}
+
+struct Package {
+    id: Option<String>,
+    name: Option<String>,
+    version: Option<String>,
+    resolution: Option<Resolution>,
 }

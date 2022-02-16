@@ -1514,7 +1514,10 @@ name = "store_connection_manager"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "lazy_static",
  "log",
+ "reqwest",
+ "resolvers",
  "serde",
  "serde_json",
  "store_controller_types",
@@ -1525,7 +1528,10 @@ dependencies = [
 name = "store_controller_types"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "log",
  "resolvers",
+ "store_path",
 ]
 
 [[package]]
@@ -1643,6 +1649,7 @@ dependencies = [
  "libc",
  "memchr",
  "mio",
+ "num_cpus",
  "pin-project-lite",
  "winapi",
 ]
